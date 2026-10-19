@@ -113,7 +113,9 @@ export function registerAccountRoutes(app: OpenAPIHono<AppEnv>) {
     const user = one<{ password_hash: string }>(c.var.db, "SELECT password_hash FROM users WHERE id = :id", { id: c.var.actor.user.id })!;
     if (!verifyPassword(String(body.current ?? ""), user.password_hash)) return c.json({ error: "Mot de passe actuel incorrect." }, 400);
     if (String(body.next ?? "").length < 10) return c.json({ error: "Le nouveau mot de passe doit faire au moins 10 caractères." }, 400);
-    c.var.db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hashPassword(String(body.next)), c.var.actor.user.id);
+    c.var.db
+      .prepare("UPDATE users SET password_hash = ?, password_changed_at = datetime('now') WHERE id = ?")
+      .run(hashPassword(String(body.next)), c.var.actor.user.id);
     return c.json({ ok: true });
   });
 }

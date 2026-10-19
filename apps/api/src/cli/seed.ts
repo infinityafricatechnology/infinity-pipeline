@@ -9,7 +9,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import { hashPassword } from "../auth.ts";
+import { hashPassword, verifyPassword } from "../auth.ts";
 import { one, openDatabase, projectRoot, transaction } from "../db.ts";
 
 type Item = Record<string, unknown>;
@@ -46,9 +46,26 @@ export function loadSeed(db: DatabaseSync, data: Record<string, Item[]>) {
   for (const { account: k, ...a } of data.actions) insert(db, "actions", { ...a, account_id: account(k) });
 }
 
+/**
+ * Crée l'administrateur au premier démarrage. Ensuite, tant qu'il n'a pas choisi lui-même son mot de passe
+ * (Réglages), celui d'IAT_ADMIN_PASSWORD lui est réappliqué : changer la configuration suffit.
+ */
 function ensureAdmin(db: DatabaseSync) {
-  if (one(db, "SELECT id FROM users LIMIT 1")) return;
   const email = process.env.IAT_ADMIN_EMAIL || "admin@iat.ci";
+  const configured = process.env.IAT_ADMIN_PASSWORD;
+  const admin = one<{ id: number; password_hash: string; password_changed_at: string | null }>(
+    db,
+    "SELECT id, password_hash, password_changed_at FROM users WHERE email = :email",
+    { email },
+  );
+  if (admin) {
+    if (configured && !admin.password_changed_at && !verifyPassword(configured, admin.password_hash)) {
+      db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hashPassword(configured), admin.id);
+      console.log(`Mot de passe de ${email} mis à jour depuis IAT_ADMIN_PASSWORD.`);
+    }
+    return;
+  }
+  if (one(db, "SELECT id FROM users LIMIT 1")) return;
   const name = process.env.IAT_ADMIN_NAME || "Administrateur IAT";
   const generated = !process.env.IAT_ADMIN_PASSWORD;
   const password = process.env.IAT_ADMIN_PASSWORD || randomBytes(12).toString("base64url");

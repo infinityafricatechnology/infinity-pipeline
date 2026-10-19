@@ -7,11 +7,13 @@ Tout ce que le classeur calculait (montant pondéré, % rentabilité, échéance
 ## Démarrer avec Docker
 
 ```bash
-cp .env.example .env          # renseigner IAT_ADMIN_PASSWORD (sinon il est généré et affiché dans les journaux)
+cp .env.example .env          # renseigner IAT_ADMIN_PASSWORD (sinon le mot de passe par défaut de docker-compose.yml s'applique)
 docker compose up -d --build
 ```
 
-L'application répond sur http://localhost:8300 et le connecteur Claude sur http://localhost:8311/mcp. Au premier démarrage, les données du classeur sont chargées et le compte administrateur est créé. La base SQLite vit dans le volume `iat-data` : elle survit aux redémarrages et aux mises à jour de l'image.
+L'application répond sur http://localhost:8300 et le connecteur Claude sur http://localhost:8311/mcp. Au premier démarrage, les données du classeur sont chargées et le compte administrateur est créé.
+
+Le mot de passe de l'administrateur vient de `IAT_ADMIN_PASSWORD` (valeur par défaut dans `docker-compose.yml`, à remplacer par une variable d'environnement en production). Il est réappliqué à chaque démarrage tant que l'administrateur n'a pas choisi le sien dans Réglages ; ensuite, la configuration ne l'écrase plus. La base SQLite vit dans le volume `iat-data` : elle survit aux redémarrages et aux mises à jour de l'image.
 
 - Journaux : `docker compose logs -f app`
 - Ajouter un utilisateur : depuis l'application (Réglages), ou `docker compose exec app sh -c "cd apps/api && node src/cli/user.ts add prenom.nom@iat.ci 'Prénom Nom'"`

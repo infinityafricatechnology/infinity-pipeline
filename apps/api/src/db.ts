@@ -13,7 +13,14 @@ export function openDatabase(path = process.env.DATABASE_PATH ?? "data/iat.db"):
   const db = new DatabaseSync(file);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   db.exec(readFileSync(resolve(import.meta.dirname, "schema.sql"), "utf8"));
+  migrate(db);
   return db;
+}
+
+/** Mises à jour des bases créées par une version précédente (le schéma ne fait que CREATE IF NOT EXISTS). */
+function migrate(db: DatabaseSync) {
+  const columns = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((c) => c.name);
+  if (!columns.includes("password_changed_at")) db.exec("ALTER TABLE users ADD COLUMN password_changed_at TEXT");
 }
 
 export function all<T = Row>(db: DatabaseSync, sql: string, params: Params = {}): T[] {

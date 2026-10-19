@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+  -- Date à laquelle la personne a choisi elle-même son mot de passe ; vide tant qu'il vient de la configuration.
+  password_changed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

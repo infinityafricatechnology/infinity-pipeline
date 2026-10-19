@@ -1,0 +1,28 @@
+{
+  "name": "Infinity Pipeline",
+  "short_name": "Pipeline IAT",
+  "description": "Pipeline commercial d'IAT : affaires, renouvellements, actions et contacts",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F1F3F6",
+  "theme_color": "#0B2A47",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

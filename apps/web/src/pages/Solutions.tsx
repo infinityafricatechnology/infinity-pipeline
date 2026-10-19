@@ -18,10 +18,24 @@ export function Solutions() {
   const { data: prospects } = useApi<Page<Prospect>>(selected ? `/prospects?solution_id=${selected.id}&limit=500` : null);
   const { data: pitches } = useApi<Page<Pitch>>(selected ? `/pitches?solution_id=${selected.id}` : null);
   const [openProspect, setOpenProspect] = useState<Prospect | "new" | null>(null);
-  const [editSolution, setEditSolution] = useState(false);
+  const [editSolution, setEditSolution] = useState<Solution | "new" | null>(null);
   const pagedProspects = usePaged(prospects?.results ?? [], String(selectedId));
 
   if (!solutions) return <div className="page"><Loading height={420} /></div>;
+  if (solutions.results.length === 0 && !editSolution) {
+    return (
+      <div className="page">
+        <div className="group">
+          <Empty title="Le catalogue est vide">
+            <p style={{ margin: "4px 0 12px" }}>Ajoutez la première solution que vous vendez, puis ses prospects.</p>
+            <button type="button" className="btn btn-primary" onClick={() => setEditSolution("new")}>
+              Nouvelle solution
+            </button>
+          </Empty>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -29,6 +43,18 @@ export function Solutions() {
         <div>
           <h1 className="t-title">Solutions et prospects</h1>
           <p className="lede">Ce qu’on vend, à qui, avec quel argument. On ne vend pas ce qu’on ne maîtrise pas : tenez la maîtrise commerciale à jour.</p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {selected && (
+            <button type="button" className="btn" onClick={() => setOpenProspect("new")}>
+              <IconPlus />
+              Nouveau prospect
+            </button>
+          )}
+          <button type="button" className="btn btn-primary" onClick={() => setEditSolution("new")}>
+            <IconPlus />
+            Nouvelle solution
+          </button>
         </div>
       </div>
       <div className="master-detail">
@@ -60,7 +86,7 @@ export function Solutions() {
                     {selected.name}
                   </h2>
                 </div>
-                <button type="button" className="btn" onClick={() => setEditSolution(true)}>
+                <button type="button" className="btn" onClick={() => setEditSolution(selected)}>
                   Modifier
                 </button>
               </div>
@@ -211,7 +237,14 @@ export function Solutions() {
           onClose={() => setOpenProspect(null)}
         />
       )}
-      {editSolution && selected && <SolutionSheet solution={selected} onClose={() => setEditSolution(false)} />}
+      {editSolution && (
+        <SolutionSheet
+          solution={editSolution === "new" ? null : editSolution}
+          onClose={() => setEditSolution(null)}
+          // Une solution créée est aussitôt sélectionnée, prête à recevoir ses prospects.
+          onSaved={(saved) => setParams({ solution: String(saved.id) }, { replace: true })}
+        />
+      )}
     </div>
   );
 }

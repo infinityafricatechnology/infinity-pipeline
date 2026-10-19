@@ -53,6 +53,7 @@ export function EntitySheet({
   onClose,
   deletable = true,
   derive,
+  onSaved,
   children,
 }: {
   path: string;
@@ -69,6 +70,8 @@ export function EntitySheet({
   deletable?: boolean;
   /** Valeurs à ajuster quand un champ change (ex. étape « Gagné » → closing 100 %). */
   derive?: (name: string, value: unknown, draft: Values) => Values | undefined;
+  /** Appelé avec l'élément tel que l'API l'a enregistré (création ou modification). */
+  onSaved?: (item: Values) => void;
   children?: ReactNode;
 }) {
   const id = item?.id as number | undefined;
@@ -106,8 +109,9 @@ export function EntitySheet({
     save.mutate(
       { method: id ? "patch" : "post", path: id ? `/${path}/${id}` : `/${path}`, body },
       {
-        onSuccess: () => {
+        onSuccess: (saved) => {
           toast(id ? `${noun.label} enregistré${e}` : `${noun.label} créé${e}`);
+          onSaved?.(saved as Values);
           onClose();
         },
         onError: (error) => toast(error.message, true),

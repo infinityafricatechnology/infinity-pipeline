@@ -355,7 +355,7 @@ export function ProspectSheet({ prospect, defaults, onClose }: { prospect: Prosp
   );
 }
 
-export function SolutionSheet({ solution, onClose }: { solution: Solution | null } & Close) {
+export function SolutionSheet({ solution, onClose, onSaved }: { solution: Solution | null; onSaved?: (s: Solution) => void } & Close) {
   return (
     <EntitySheet
       path="solutions"
@@ -363,6 +363,8 @@ export function SolutionSheet({ solution, onClose }: { solution: Solution | null
       noun={{ label: "Solution", feminine: true }}
       item={solution}
       deletable={false}
+      defaults={{ mastery: "À former" }}
+      onSaved={(saved) => onSaved?.(saved as unknown as Solution)}
       fields={[
         { name: "name", label: "Solution", required: true },
         { name: "vendor", label: "Éditeur / partenaire" },

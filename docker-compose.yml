@@ -1,0 +1,36 @@
+# Infinity Pipeline — démarrage : `docker compose up -d --build`, puis http://localhost:8300
+# Connecteur Claude (MCP) : http://localhost:8311/mcp
+# Variables lues dans .env (voir .env.example).
+
+services:
+  app:
+    build: .
+    image: infinity-pipeline:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8300}:8300"
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8300}
+      MCP_URL: ${MCP_URL:-http://localhost:8311/mcp}
+      IAT_ADMIN_EMAIL: ${IAT_ADMIN_EMAIL:-admin@iat.ci}
+      IAT_ADMIN_NAME: ${IAT_ADMIN_NAME:-Administrateur IAT}
+      IAT_ADMIN_PASSWORD: ${IAT_ADMIN_PASSWORD:-}
+    volumes:
+      - iat-data:/data
+
+  # Connecteur MCP pour Claude. Il n'appelle que l'API publique, avec le jeton de chaque utilisateur.
+  mcp:
+    build: apps/mcp
+    image: infinity-pipeline-mcp:latest
+    restart: unless-stopped
+    ports:
+      - "${MCP_PORT:-8311}:8311"
+    environment:
+      PIPELINE_API_URL: http://app:8300
+      PIPELINE_WEB_URL: ${PUBLIC_URL:-http://localhost:8300}
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  iat-data:

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/*.db
+data/*.db-*
+.env
+.DS_Store
+
+# Secrets et fichiers locaux
+.env
+.DS_Store
+**/.venv/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/

@@ -1,0 +1,19 @@
+{
+  "name": "iat-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pipeline commercial IAT : affaires, comptes, renouvellements, actions et contacts, avec une API publique pour Claude",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter @iat/api start",
+    "import": "uv run tools/import/import_xlsx.py docs/PIPELINE_IAT_V3.xlsx data/seed.json",
+    "seed": "pnpm --filter @iat/api seed",
+    "user": "pnpm --filter @iat/api user",
+    "check": "pnpm -r check"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.10.0"
+}

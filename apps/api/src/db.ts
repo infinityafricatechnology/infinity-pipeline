@@ -19,8 +19,15 @@ export function openDatabase(path = process.env.DATABASE_PATH ?? "data/iat.db"):
 
 /** Mises à jour des bases créées par une version précédente (le schéma ne fait que CREATE IF NOT EXISTS). */
 function migrate(db: DatabaseSync) {
-  const columns = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((c) => c.name);
-  if (!columns.includes("password_changed_at")) db.exec("ALTER TABLE users ADD COLUMN password_changed_at TEXT");
+  const added: [table: string, column: string][] = [
+    ["users", "password_changed_at"],
+    ["accounts", "billing_details"],
+    ["invoices", "invoice_number"],
+  ];
+  for (const [table, column] of added) {
+    const columns = (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
+    if (!columns.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`);
+  }
 }
 
 export function all<T = Row>(db: DatabaseSync, sql: string, params: Params = {}): T[] {

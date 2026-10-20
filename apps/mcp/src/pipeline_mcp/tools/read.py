@@ -172,6 +172,7 @@ def register_read_tools(mcp: FastMCP, deps: Deps) -> None:
                 "contact_direction",
                 "contact_operational",
                 "contact_purchasing",
+                "billing_details",
                 "last_contact",
                 "next_meeting",
                 "notes",

@@ -73,6 +73,7 @@ export function AccountDetail() {
     ["Interlocuteur direction", a.contact_direction],
     ["Interlocuteur opérationnel", a.contact_operational],
     ["Achats / marchés", a.contact_purchasing],
+    ["Facturation", a.billing_details],
     ["Prochain point prévu", a.next_meeting],
     ["Dernier contact", a.last_contact ? date(a.last_contact, true) : null],
   ];
@@ -210,7 +211,11 @@ export function AccountDetail() {
                   <tr key={i.id} onClick={() => setOpen({ kind: "invoice", item: i })}>
                     <td className="cell-title">
                       {i.product}
-                      <span className="cell-sub">{i.invoice_date ? `Facturé le ${date(i.invoice_date, true)}` : (i.comments ?? "Date de facturation à renseigner")}</span>
+                      <span className="cell-sub">
+                        {[i.invoice_number && `N° ${i.invoice_number}`, i.invoice_date ? `Facturé le ${date(i.invoice_date, true)}` : "Date de facturation à renseigner"]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
                     </td>
                     <td className="num">{i.fiscal_year ?? "—"}</td>
                     <td className="right">

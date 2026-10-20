@@ -32,6 +32,7 @@ export type Account = {
   last_contact: string | null;
   next_meeting: string | null;
   notes: string | null;
+  billing_details: string | null;
   has_fiche: boolean;
   deals_count: number;
   open_amount: number;
@@ -73,6 +74,7 @@ export type Invoice = {
   account_id: number;
   account_name: string;
   product: string;
+  invoice_number: string | null;
   vendor: string | null;
   recurrence: string | null;
   fiscal_year: number | null;

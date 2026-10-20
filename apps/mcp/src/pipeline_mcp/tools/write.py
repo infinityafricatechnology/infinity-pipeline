@@ -144,6 +144,7 @@ class AccountChanges(BaseModel):
     contact_purchasing: str | None = None
     last_contact: str | None = Field(None, pattern=DATE)
     next_meeting: str | None = None
+    billing_details: str | None = Field(None, description="Coordonnées de facturation : raison sociale, NCC, e-mail")
     notes: str | None = None
 
 
@@ -176,6 +177,7 @@ class ContactChanges(BaseModel):
 class NewInvoice(BaseModel):
     account: str
     product: str = Field(min_length=1, description="Produit / service facturé")
+    invoice_number: str | None = Field(None, description="N° de facture (FNE)")
     fiscal_year: int | None = None
     invoice_date: str | None = Field(None, pattern=DATE)
     amount: Amount | None = None
@@ -189,6 +191,7 @@ class NewInvoice(BaseModel):
 
 class InvoiceChanges(BaseModel):
     id: int = Field(description="Identifiant de la facture (get_account)")
+    invoice_number: str | None = Field(None, description="N° de facture (FNE)")
     invoice_date: str | None = Field(None, pattern=DATE)
     amount: Amount | None = None
     collected: Amount | None = Field(None, description="Total encaissé à ce jour (et non le dernier versement)")

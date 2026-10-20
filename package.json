@@ -7,7 +7,7 @@
     "dev": "pnpm --parallel -r dev",
     "build": "pnpm -r build",
     "start": "pnpm --filter @iat/api start",
-    "import": "uv run tools/import/import_xlsx.py docs/PIPELINE_IAT_V3.xlsx data/seed.json",
+    "import-xlsx": "uv run tools/import/import_xlsx.py docs/PIPELINE_IAT_V3.xlsx data/seed.json \"docs/IAT_Pipeline_renouvellements (1).xlsx\"",
     "seed": "pnpm --filter @iat/api seed",
     "user": "pnpm --filter @iat/api user",
     "check": "pnpm -r check"

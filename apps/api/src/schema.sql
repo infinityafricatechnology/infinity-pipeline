@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   last_contact TEXT,
   next_meeting TEXT,
   notes TEXT,
+  billing_details TEXT,
   has_fiche INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -84,6 +85,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   id INTEGER PRIMARY KEY,
   account_id INTEGER NOT NULL REFERENCES accounts(id),
   product TEXT NOT NULL,
+  invoice_number TEXT,
   vendor TEXT,
   recurrence TEXT,
   fiscal_year INTEGER,

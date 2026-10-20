@@ -35,6 +35,8 @@ const FIELD_LABELS: Record<string, string> = {
   lead: "responsable",
   owner: "responsable",
   comments: "commentaires",
+  invoice_number: "n° de facture",
+  billing_details: "coordonnées de facturation",
   health: "état de santé",
   collected: "encaissé",
 };

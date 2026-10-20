@@ -237,6 +237,7 @@ export function InvoiceSheet({ invoice, defaults, onClose }: { invoice: Invoice 
       fields={[
         { name: "product", label: "Produit / service", wide: true, required: true },
         { name: "account_id", label: "Client", type: "account", required: true },
+        { name: "invoice_number", label: "N° de facture" },
         { name: "vendor", label: "Partenaire / éditeur" },
         { name: "fiscal_year", label: "Exercice", type: "int" },
         { name: "invoice_date", label: "Date de facturation", type: "date" },
@@ -410,6 +411,7 @@ export function AccountSheet({ account, onClose }: { account: Account | null } &
         { name: "contact_direction", label: "Interlocuteur direction", type: "textarea" },
         { name: "contact_operational", label: "Interlocuteur opérationnel", type: "textarea" },
         { name: "contact_purchasing", label: "Achats / marchés", type: "textarea" },
+        { name: "billing_details", label: "Facturation (raison sociale, NCC, e-mail)", type: "textarea" },
         { name: "notes", label: "Notes", type: "textarea" },
       ]}
       caption={account ? "Fiche compte" : "Comptes"}

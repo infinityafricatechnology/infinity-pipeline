@@ -1,5 +1,5 @@
 /**
- * Charge data/seed.json (produit par `pnpm import` depuis le classeur Excel) dans une base vide,
+ * Charge data/seed.json (produit par `pnpm import-xlsx` depuis le classeur Excel) dans une base vide,
  * puis crée le premier administrateur.
  *
  *   pnpm seed            base vide seulement

@@ -127,6 +127,7 @@ def invoice(i: dict) -> dict:
         {
             "id": i["id"],
             "product": i["product"],
+            "invoice_number": i.get("invoice_number"),
             "fiscal_year": i.get("fiscal_year"),
             "invoice_date": i.get("invoice_date"),
             "amount": i.get("amount"),

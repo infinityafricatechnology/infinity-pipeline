@@ -39,7 +39,7 @@ COPY package.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/api/src apps/api/src
 COPY --from=build /app/apps/web/dist apps/web/dist
-# Données de départ tirées du classeur (pnpm import) : chargées au premier démarrage seulement.
+# Données de départ tirées du classeur (pnpm import-xlsx) : chargées au premier démarrage seulement.
 COPY data/seed.json seed/seed.json
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN mkdir -p /data && chown node:node /data && chmod +x /usr/local/bin/entrypoint.sh

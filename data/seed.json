@@ -1,7 +1,7 @@
 {
  "meta": {
-  "source": "PIPELINE_IAT_V3.xlsx",
-  "imported_at": "2026-10-19T15:34:17"
+  "source": "PIPELINE_IAT_V3.xlsx + IAT_Pipeline_renouvellements (1).xlsx",
+  "imported_at": "2026-10-20T09:15:46"
  },
  "accounts": [
   {
@@ -19,7 +19,8 @@
    "health": "Bon",
    "satisfaction": 4,
    "next_meeting": "Présentation et formation sur les solutions de la CNAM endpoint central et services deskplus",
-   "notes": "Premier client IAT : 46 % du montant récurrent annuel (compta). Contrats récurrents : licences ManageEngine (renouvellement annuel, prochaine échéance 27/02/2027) + contrat de maintenance facturé 4,5 M par trimestre. Un nouveau directeur est arrivé sur un compte suivi en haut par Maoula : le prendre en charge côté opérationnel (rattachement à la CNAM à confirmer)."
+   "notes": "Premier client IAT : 46 % du montant récurrent annuel (compta). Contrats récurrents : licences ManageEngine (renouvellement annuel, prochaine échéance 27/02/2027) + contrat de maintenance facturé 4,5 M par trimestre. Un nouveau directeur est arrivé sur un compte suivi en haut par Maoula : le prendre en charge côté opérationnel (rattachement à la CNAM à confirmer).",
+   "billing_details": "CAISSE NAT D'ASSURANCE MALADIE (CNAM) · NCC 1504753F · facturesfne@ipscnam.ci"
   },
   {
    "key": "cnps",
@@ -33,7 +34,8 @@
    "contact_operational": "Innocent YAPI — RSSI ; Amadou DIOMANDOU — Chef de Departement Infrastructure et Exploitation ; Daouda COULIBALY — Chef du Service Système Réseau et NTIC (base clients)",
    "contact_purchasing": "Nomel Lorgn Florent — Acheteur ; Mme YASSI Née DIALLO — Resp Chargés des Marchés (base clients)",
    "iat_lead": "Fadel Koloma / Salim Kone",
-   "notes": "Renouvellement des licences échu depuis le 10/02/2026 : offre 2026 envoyée, en attente de retour (compta). La réunion du 13/10 évoque un contrat de 22 700 000 envoyé à la signature et une autre offre d’environ 59 M non validée. Le montant du renouvellement n’est pas chiffré dans le point comptable : à rapprocher."
+   "notes": "Renouvellement des licences échu depuis le 10/02/2026 : offre 2026 envoyée, en attente de retour (compta). La réunion du 13/10 évoque un contrat de 22 700 000 envoyé à la signature et une autre offre d’environ 59 M non validée. Le montant du renouvellement n’est pas chiffré dans le point comptable : à rapprocher.",
+   "billing_details": "CNPS · Abidijan-Plateau · 01 BP 317Abidjan 01 · NCC 5000810F · Tél 27 20 25 10 00"
   },
   {
    "key": "fer",
@@ -44,7 +46,8 @@
    "sector": "Administration / infrastructures routières (Fonds d’entretien routier)",
    "leadership_summary": "Directrice générale : Annick Tohé Lasmel (confirmé) · Directeur financier et comptable : Moussa Diarra (à confirmer)",
    "iat_lead": "Commercial IAT",
-   "notes": "Nouveau client 2026 (compta) : licences ManageEngine facturées 28 766 400 le 24/06/2026, soldées. Prochaine échéance 24/06/2027. La sécurisation des boîtes mail était le produit d’entrée ; une formation sur la solution était prévue."
+   "notes": "Nouveau client 2026 (compta) : licences ManageEngine facturées 28 766 400 le 24/06/2026, soldées. Prochaine échéance 24/06/2027. La sécurisation des boîtes mail était le produit d’entrée ; une formation sur la solution était prévue.",
+   "billing_details": "FONDS D'ENTRETIEN ROUTIER (FER) · NCC 0304966P · atta.eblin@fer-ci.org"
   },
   {
    "key": "nsia",
@@ -57,7 +60,8 @@
    "contact_direction": "Gabriel COMOE-EDANOU — Directeur Des Opérations et de la Technologies Groupe (base clients — coordonnées ci-dessous)",
    "contact_operational": "Tyao Basile N'GUESSSAN — Ingénieur Projet ; AMANGOUA Alexandre ; Elvis Adou (base clients)",
    "iat_lead": "Commercial IAT",
-   "notes": "Client récurrent depuis 2024 (compta), renouvelle chaque année en septembre. Raisons sociales facturées : NSIA Assurances (2024-2025) puis NSIA Assurances Vie (2026). Figurait comme prospect « NSIA VIE » dans l’ancien pipeline."
+   "notes": "Client récurrent depuis 2024 (compta), renouvelle chaque année en septembre. Raisons sociales facturées : NSIA Assurances (2024-2025) puis NSIA Assurances Vie (2026). Figurait comme prospect « NSIA VIE » dans l’ancien pipeline.",
+   "billing_details": "NSIA VIE ASSURANCES · NCC 8805053A · silvere.kacou@nsiaassurances.com"
   },
   {
    "key": "orange-business",
@@ -81,7 +85,8 @@
    "sector": "Intégrateur / ESN (partenaire revendeur)",
    "leadership_summary": "PDG : Luc de Chammard (confirmé) · DG délégué : Bertrand Ducurtil (à confirmer) · Directeur marketing et communication : Matthieu Vautier (à confirmer)",
    "iat_lead": "Commercial IAT",
-   "notes": "NEURONES passe par IAT pour vendre WithSecure, car IAT détient la carte partenaire. Renouvellement échu depuis le 21/08/2026 : blocage côté fournisseur (attente de cotation). Pousser aussi la carte en direct, sinon l’éditeur risque de la retirer."
+   "notes": "NEURONES passe par IAT pour vendre WithSecure, car IAT détient la carte partenaire. Renouvellement échu depuis le 21/08/2026 : blocage côté fournisseur (attente de cotation). Pousser aussi la carte en direct, sinon l’éditeur risque de la retirer.",
+   "billing_details": "NEURONNES TECHNOLOGIES · Angré 8ème tranche Abidjan · Tél 27 22 42 90 90 · Cél 07 88 88 61 61 · bziega@neuronestech.com · À l'attention de M. ZIEGA Behi Claude"
   },
   {
    "key": "md-participations",
@@ -992,7 +997,8 @@
    "cost_of_sales": 0,
    "commission": 33000000,
    "collected": 66309707,
-   "comments": "Soldé. Coût des ventes et commission repris du pipeline d’origine."
+   "comments": "Soldé. Coût des ventes et commission repris du pipeline d’origine.\n\nFacture n° 2401345J26000000002 du 27/02/2026 (HT) :\n• ManageEngine ADManager Plus Professional Edition - Perpetual Licensing Model Single Installation License fee for additional 5 help desk Technicians (total of 1 domain and 10 tech) — 9 177 101\n• Annual Maintenance and Support fee for 1 Domain (Unrestricted Objects) with 10 help desk Technicians — 4 350 685\n• ManageEngine Service Desk Plus Enterprise Edition - Perpetual Model Single Installation License fee for additional 15 technicians (Total of 30 Technicians (1000 nodes)) — 22 761 646\n• Annual Maintenance and Support fee for 30 Technicians (1000 nodes) — 13 936 063\n• ManageEngine Endpoint Central UEM Edition Perpetual Licensing Model Annual Maintenance and Support Fee for ManageEngine Endpoint Central UEM Edition for 500 endpoints and Single User License — 5 963 842\n• Single Installation License fee for Additional 5 Users (Total of 15) — 4 453 628\n• Annual Maintenance and Support fee for 15 Users — 3 979 359\n• Annual Maintenance and Support Fee for ManageEngine Endpoint Central UEM Edition Endpoint Security for 200 Workstations — 3 442 178\n• Annual Maintenance and Support Fee for ManageEngine Endpoint Central UEM Edition for Multi-Language Pack License — 1 735 190\nRemise globale de 5 %.",
+   "invoice_number": "2401345J26000000002"
   },
   {
    "account": "cnam",
@@ -1018,7 +1024,8 @@
    "cost_of_sales": null,
    "commission": null,
    "collected": 21578849,
-   "comments": "Encaissé le 18/03/2025."
+   "comments": "Encaissé le 18/03/2025.\n\nFacture du 10/02/2025 (HT) :\nManageEngine ADAudit Plus Professional Edition - Subscription Model :\n• Annual Subscription fee for 3 Domain Controllers — 1 130 251\n• Annual subscription fee for 25 Windows Servers — 1 000 475\n• Annual Subscription Fee for 2000 Workstations — 2 756 598\n• Annual subscription fee for 25 File Servers — 2 917 668\nManageEngine Recovery Manager Plus - Subscription Model :\n• Annual subscription fee for 2000 User Objects — 1 974 258\nManageEngine ADSelfService Plus Professional Edition :\n• Annual Maintenance and Support Fee for 2000 Domain Users — 1 770 000\nManageEngine ADManager Plus Professional Edition - Perpetual Model :\n• Single Installation License fee for 1 Domain (Unrestricted Objects) with 5help desk Technicians(Total of 35 technicians) — 1 150 500\n• Annual Maintenance and Support fee for 1 Domain (Unrestricted Objects) with 35 help desk Technicians — 4 277 099\nService Professionnel :\n• Intégration et mises à jour (4 jours) — 1 770 000\n• Formation (Forfait-8 jours) — 2 832 000",
+   "invoice_number": null
   },
   {
    "account": "fer",
@@ -1031,7 +1038,8 @@
    "cost_of_sales": null,
    "commission": null,
    "collected": 28766400,
-   "comments": "Soldé. Nouveau client 2026."
+   "comments": "Soldé. Nouveau client 2026.\n\nFacture n° 2401345J26000000003 du 24/06/2026 (HT) :\n• RENOUVELLEMENT DES LICENCES MANAGE ENGINE ISM, ITOM ET PAM POUR LE COMPTE DU FER SIEGE — 28 766 400",
+   "invoice_number": "2401345J26000000003"
   },
   {
    "account": "nsia",
@@ -1070,7 +1078,8 @@
    "cost_of_sales": null,
    "commission": null,
    "collected": 1610068,
-   "comments": "NSIA ASSURANCES VIE — soldé."
+   "comments": "NSIA ASSURANCES VIE — soldé.\n\nFacture n° 2401345J26000000008 du 18/09/2026 (HT) :\nManageEngine ServiceDesk Plus Multi-Language Professional Edition - Subscription Model :\n• Annual Subscription fee for 4 Technicians (250 IT Assets) (Start 01/10/26 End 01/10/27) — 1 610 068",
+   "invoice_number": "2401345J26000000008"
   },
   {
    "account": "orange-business",
@@ -1096,7 +1105,8 @@
    "cost_of_sales": 4578000,
    "commission": 655000,
    "collected": 7383000,
-   "comments": "Encaissé en 3 fois (27/08, 14/11, 02/12/2025). Coût des ventes et commission repris du pipeline d’origine."
+   "comments": "Encaissé en 3 fois (27/08, 14/11, 02/12/2025). Coût des ventes et commission repris du pipeline d’origine.\n\nFacture du 21/08/2025 (HT) :\nOffre Eléments EPP+EDR Premium 1 an :\n• WithSecure Elements EDR and EPP for Computers Premium, Partner Managed Upgrade for 1 year (100-499) — 4 560 000\n• WithSecure Support, Premium License (competitive upgrade and new) for 1 year (500-999), International — 720 000\nEn Option_WithSecure Elevate 1an :\n• WithSecure Elevate Package (2/1), Partner Managed for 1 year — 2 103 000\nAcompte de 3 691 500 reçu le 22/08/2025.",
+   "invoice_number": null
   }
  ],
  "renewals": [

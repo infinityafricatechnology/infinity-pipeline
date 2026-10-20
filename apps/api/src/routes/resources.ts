@@ -61,6 +61,7 @@ const accountInput = z
     last_contact: optionalDate,
     next_meeting: optionalText,
     notes: optionalText,
+    billing_details: optionalText.openapi({ description: "Coordonnées de facturation : raison sociale, NCC, e-mail de facturation" }),
     has_fiche: z.boolean().optional().openapi({ description: "Compte suivi avec une fiche complète" }),
   })
   .openapi("AccountInput");
@@ -197,6 +198,7 @@ const invoiceInput = z
   .object({
     ...accountRef,
     product: z.string().trim().min(1),
+    invoice_number: optionalText.openapi({ description: "N° de facture (FNE)", example: "2401345J26000000002" }),
     vendor: optionalText,
     recurrence: z.enum(LISTS.recurrences).nullable().optional(),
     fiscal_year: z.number().int().min(2000).max(2100).nullable().optional(),
@@ -232,7 +234,7 @@ export const invoiceSpec: ResourceSpec = {
     if (q.outstanding) w.clauses.push("COALESCE(t.amount, 0) - COALESCE(t.collected, 0) > 0");
     return w;
   },
-  search: ["t.product", "t.vendor", "a.name", "t.comments"],
+  search: ["t.product", "t.invoice_number", "t.vendor", "a.name", "t.comments"],
   orderBy: "COALESCE(t.invoice_date, t.fiscal_year || '-12-31') DESC, t.id DESC",
   select: accountJoin("invoices"),
   present: (r) => ({ ...r, ...invoiceComputed(r as never) }),

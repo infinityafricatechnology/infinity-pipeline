@@ -32,8 +32,15 @@ pnpm dev                       # API sur :8300, interface sur http://localhost:5
 Réimporter le classeur après une mise à jour (nécessite [uv](https://docs.astral.sh/uv/)) :
 
 ```bash
-pnpm import                    # docs/PIPELINE_IAT_V3.xlsx → data/seed.json
+pnpm import-xlsx               # docs/PIPELINE_IAT_V3.xlsx + factures des renouvellements → data/seed.json
 pnpm seed --force              # recharge les données métier (utilisateurs et jetons conservés)
+```
+
+`pnpm seed` ne touche qu'une base vide. Pour reporter les compléments de facturation (n° de facture, détail, coordonnées de facturation) dans une base déjà en service, sans écraser les saisies, avec un jeton de Réglages > Connecter Claude :
+
+```bash
+PIPELINE_API_URL=https://… PIPELINE_API_TOKEN=… uv run tools/import/sync_api.py           # aperçu
+PIPELINE_API_URL=https://… PIPELINE_API_TOKEN=… uv run tools/import/sync_api.py --apply   # écrit
 ```
 
 ## Structure

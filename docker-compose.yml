@@ -7,8 +7,9 @@ services:
     build: .
     image: infinity-pipeline:latest
     restart: unless-stopped
+    # Ports ouverts sur la machine elle-même seulement : en production, le proxy (Coolify) sert les domaines en HTTPS.
     ports:
-      - "${PORT:-8300}:8300"
+      - "127.0.0.1:${PORT:-8300}:8300"
     environment:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8300}
       MCP_URL: ${MCP_URL:-http://localhost:8311/mcp}
@@ -26,7 +27,7 @@ services:
     image: infinity-pipeline-mcp:latest
     restart: unless-stopped
     ports:
-      - "${MCP_PORT:-8311}:8311"
+      - "127.0.0.1:${MCP_PORT:-8311}:8311"
     environment:
       PIPELINE_API_URL: http://app:8300
       PIPELINE_WEB_URL: ${PUBLIC_URL:-http://localhost:8300}

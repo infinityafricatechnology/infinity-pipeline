@@ -4,7 +4,7 @@ import { api, type Page, useApi, useSave } from "../lib/api";
 import { dateTime, full } from "../lib/format";
 import type { Account, Activity, Solution } from "../lib/types";
 import { IconSpark } from "./icons";
-import { Prio, Segmented, Sheet, useToast } from "./ui";
+import { Prio, Segmented, Sheet, useConfirm, useToast } from "./ui";
 
 export type FieldSpec = {
   name: string;
@@ -112,11 +112,20 @@ export function EntitySheet({
       return { ...next, ...(derive?.(name, next[name], next) ?? {}) };
     });
 
-  // Fermer sans perdre une saisie par mégarde (Échap, clic à côté, Annuler).
-  const requestClose = () => {
-    if (dirty && !window.confirm("Abandonner les modifications non enregistrées ?")) return;
-    onClose();
-  };
+  const confirm = useConfirm();
+  // Fermeture animée, donnée par la fenêtre (Sheet) : utilisée après un enregistrement ou une suppression.
+  const dismiss = useRef<(() => void) | null>(null);
+  const close = () => (dismiss.current ? dismiss.current() : onClose());
+  // Fermer sans perdre une saisie par mégarde (Échap, clic à côté, glissement, Annuler).
+  const canClose = () =>
+    !dirty ||
+    confirm({
+      title: "Abandonner les modifications ?",
+      message: "Les changements apportés à cette fiche n’ont pas été enregistrés.",
+      confirm: "Abandonner",
+      cancel: "Continuer la saisie",
+      destructive: true,
+    });
 
   const submit = () => {
     if (missing.length) {
@@ -130,7 +139,7 @@ export function EntitySheet({
         onSuccess: (saved) => {
           toast(id ? `${noun.label} enregistré${e}` : `${noun.label} créé${e}`);
           onSaved?.(saved as Values);
-          onClose();
+          close();
         },
         onError: (error) => toast(error.message, true),
       },
@@ -151,14 +160,21 @@ export function EntitySheet({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const remove = () => {
-    if (!id || !window.confirm(`Supprimer définitivement cet élément ? L'opération reste visible dans le journal.`)) return;
+  const remove = async () => {
+    if (!id) return;
+    const ok = await confirm({
+      title: `Supprimer ${noun.feminine ? "cette" : /^[aeéèiouyh]/i.test(noun.label) ? "cet" : "ce"} ${noun.label.toLowerCase()} ?`,
+      message: "La suppression est définitive ; elle reste visible dans le journal.",
+      confirm: "Supprimer",
+      destructive: true,
+    });
+    if (!ok) return;
     save.mutate(
       { method: "del", path: `/${path}/${id}` },
       {
         onSuccess: () => {
           toast(`${noun.label} supprimé${e}`);
-          onClose();
+          close();
         },
         onError: (error) => toast(error.message, true),
       },
@@ -169,7 +185,9 @@ export function EntitySheet({
     <Sheet
       caption={caption}
       title={title}
-      onClose={requestClose}
+      onClose={onClose}
+      canClose={canClose}
+      dismissRef={dismiss}
       aside={id ? <History entity={entity} id={id} /> : undefined}
       footer={
         <>
@@ -180,7 +198,7 @@ export function EntitySheet({
           )}
           <span className="spacer" />
           <span className="t-caption hide-sm">{dirty || !id ? "⌘↩ pour enregistrer" : ""}</span>
-          <button type="button" className="btn" onClick={requestClose}>
+          <button type="button" className="btn" onClick={async () => (await canClose()) && close()}>
             {dirty ? "Annuler" : "Fermer"}
           </button>
           <button

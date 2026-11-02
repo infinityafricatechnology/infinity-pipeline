@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { IconCopy, IconSpark, IconWarning } from "../components/icons";
-import { Empty, Segmented, useToast } from "../components/ui";
+import { Empty, Segmented, useConfirm, useToast } from "../components/ui";
 import { api, useApi, useSave } from "../lib/api";
 import { date } from "../lib/format";
 import type { Me } from "../lib/types";
@@ -54,6 +54,7 @@ function ConnectClaude() {
   const { data } = useApi<{ mcp_url: string | null; results: Token[] }>("/tokens");
   const save = useSave();
   const toast = useToast();
+  const confirm = useConfirm();
   const [days, setDays] = useState<"30" | "90" | "365" | "none">("90");
   const [name, setName] = useState("Claude");
   const [created, setCreated] = useState<Created | null>(null);
@@ -70,8 +71,14 @@ function ConnectClaude() {
       },
     );
   };
-  const revoke = (token: Token) => {
-    if (!window.confirm(`Révoquer le jeton « ${token.name} » ? Il cessera de fonctionner immédiatement.`)) return;
+  const revoke = async (token: Token) => {
+    const ok = await confirm({
+      title: `Révoquer le jeton « ${token.name} » ?`,
+      message: "Il cessera de fonctionner immédiatement ; Claude n’aura plus accès au pipeline avec ce jeton.",
+      confirm: "Révoquer",
+      destructive: true,
+    });
+    if (!ok) return;
     save.mutate({ method: "del", path: `/tokens/${token.id}` }, { onSuccess: () => toast("Jeton révoqué") });
   };
 

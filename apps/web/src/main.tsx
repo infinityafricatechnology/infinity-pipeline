@@ -5,7 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from "react-router";
 import { Shell } from "./components/Shell";
-import { Loading, ToastProvider } from "./components/ui";
+import { ConfirmProvider, Loading, ToastProvider } from "./components/ui";
 import { ApiError, useApi } from "./lib/api";
 import { MeContext, useMe } from "./lib/me";
 import { type SpaceCode, SpaceProvider } from "./lib/space";
@@ -129,7 +129,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={client}>
       <ToastProvider>
-        <RouterProvider router={router} />
+        <ConfirmProvider>
+          <RouterProvider router={router} />
+        </ConfirmProvider>
       </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,

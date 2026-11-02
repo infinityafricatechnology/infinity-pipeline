@@ -3,8 +3,9 @@ import { useSearchParams } from "react-router";
 import { IconGrid, IconList, IconPlus } from "../../components/icons";
 import { IapDealSheet } from "../../components/iap-sheets";
 import { Pagination, usePaged } from "../../components/Pagination";
-import { Amount, Due, Empty, FilterSelect, Loading, Search, Segmented, Stage, Status, type Tone, useToast } from "../../components/ui";
+import { Amount, Due, Empty, FilterSelect, Loading, Search, Segmented, Stage, useToast } from "../../components/ui";
 import { type Page, qs, useApi, useSave } from "../../lib/api";
+import { useBoardDrag } from "../../lib/board-drag";
 import { useDeepLink } from "../../lib/deeplink";
 import { compact, fcfa, pct } from "../../lib/format";
 import { IAP_EASES, IAP_NATURES, IAP_PEOPLE, IAP_REVIEW_TODO, IAP_STAGES, type IapDeal, type IapEase } from "../../lib/types";
@@ -17,12 +18,12 @@ function sortValue(d: IapDeal, key: SortKey): number | string | null {
   return d[key] ?? null;
 }
 
-const EASE_TONES: Record<IapEase, Tone> = { Élevée: "good", Moyenne: "warn", Faible: "none" };
+const EASE_CLASS: Record<IapEase, string> = { Élevée: "high", Moyenne: "medium", Faible: "low" };
 
-/** Facilité de commercialisation : vert si élevée, ambre si moyenne, gris si faible. */
+/** Facilité de commercialisation : point vert si élevée, ambre si moyenne, cerclé si faible (pas une alerte). */
 export function Ease({ value }: { value: IapEase | null }) {
   if (!value) return null;
-  return <Status tone={EASE_TONES[value]}>{value}</Status>;
+  return <span className={`ease ${EASE_CLASS[value]}`}>{value}</span>;
 }
 
 const reviewTodo = (d: IapDeal) => IAP_REVIEW_TODO.includes(d.due_diligence ?? "") || IAP_REVIEW_TODO.includes(d.market_study ?? "");
@@ -271,15 +272,11 @@ export function IapDeals() {
 function Board({ deals, onOpen }: { deals: IapDeal[]; onOpen: (d: IapDeal) => void }) {
   const save = useSave();
   const toast = useToast();
-  const [dragging, setDragging] = useState<number | null>(null);
-  const [over, setOver] = useState<string | null>(null);
   const [moved, setMoved] = useState<Record<number, string>>({});
   const laneOf = (d: IapDeal) => moved[d.id] ?? d.stage;
 
-  const drop = (stage: string) => {
-    const deal = deals.find((d) => d.id === dragging);
-    setOver(null);
-    setDragging(null);
+  const drop = (id: number, stage: string) => {
+    const deal = deals.find((d) => d.id === id);
     if (!deal || laneOf(deal) === stage) return;
     setMoved((m) => ({ ...m, [deal.id]: stage }));
     const label = IAP_STAGES.find((s) => s.code === stage)?.label;
@@ -301,6 +298,14 @@ function Board({ deals, onOpen }: { deals: IapDeal[]; onOpen: (d: IapDeal) => vo
     );
   };
 
+  const { dragging, over, cardProps, laneProps } = useBoardDrag({
+    laneOf: (id) => {
+      const deal = deals.find((d) => d.id === id);
+      return deal ? laneOf(deal) : "";
+    },
+    onDrop: drop,
+  });
+
   return (
     <div className="board">
       {IAP_STAGES.map((lane) => {
@@ -311,12 +316,7 @@ function Board({ deals, onOpen }: { deals: IapDeal[]; onOpen: (d: IapDeal) => vo
             key={lane.code}
             className={`lane${over === lane.code ? " over" : ""}`}
             aria-label={lane.label}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setOver(lane.code);
-            }}
-            onDragLeave={() => setOver((o) => (o === lane.code ? null : o))}
-            onDrop={() => drop(lane.code)}
+            {...laneProps(lane.code)}
           >
             <div className="lane-head">
               <span className="t-caption">{lane.code === "LOST" ? "Sortie" : lane.code}</span>
@@ -330,15 +330,7 @@ function Board({ deals, onOpen }: { deals: IapDeal[]; onOpen: (d: IapDeal) => vo
                 key={d.id}
                 type="button"
                 className={`card${dragging === d.id ? " dragging" : ""}`}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = "move";
-                  setDragging(d.id);
-                }}
-                onDragEnd={() => {
-                  setDragging(null);
-                  setOver(null);
-                }}
+                {...cardProps(d.id)}
                 onClick={() => onOpen(d)}
               >
                 <div className="card-title">

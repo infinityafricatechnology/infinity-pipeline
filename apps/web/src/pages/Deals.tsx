@@ -5,6 +5,7 @@ import { Pagination, usePaged } from "../components/Pagination";
 import { DealSheet, KINDS, LEADS } from "../components/sheets";
 import { Amount, Due, Empty, FilterSelect, Loading, Prio, Search, Segmented, Stage, useToast } from "../components/ui";
 import { type Page, qs, useApi, useSave } from "../lib/api";
+import { useBoardDrag } from "../lib/board-drag";
 import { useDeepLink } from "../lib/deeplink";
 import { compact, fcfa } from "../lib/format";
 import { type Deal, FLOW_STAGES, STAGES } from "../lib/types";
@@ -226,8 +227,6 @@ export function Deals() {
 function Board({ deals, onOpen }: { deals: Deal[]; onOpen: (d: Deal) => void }) {
   const save = useSave();
   const toast = useToast();
-  const [dragging, setDragging] = useState<number | null>(null);
-  const [over, setOver] = useState<string | null>(null);
   const [moved, setMoved] = useState<Record<number, string>>({});
   const lanes = [...FLOW_STAGES, { code: "CLOSED", label: "Clôturé / perdu", short: "Clôturé ou perdu" }];
   const laneOf = (d: Deal) => {
@@ -235,10 +234,8 @@ function Board({ deals, onOpen }: { deals: Deal[]; onOpen: (d: Deal) => void }) 
     return stage === "LOST" ? "CLOSED" : stage;
   };
 
-  const drop = (stage: string) => {
-    const deal = deals.find((d) => d.id === dragging);
-    setOver(null);
-    setDragging(null);
+  const drop = (id: number, stage: string) => {
+    const deal = deals.find((d) => d.id === id);
     if (!deal || laneOf(deal) === stage) return;
     setMoved((m) => ({ ...m, [deal.id]: stage }));
     const label = STAGES.find((s) => s.code === stage)?.short;
@@ -257,6 +254,14 @@ function Board({ deals, onOpen }: { deals: Deal[]; onOpen: (d: Deal) => void }) 
     );
   };
 
+  const { dragging, over, cardProps, laneProps } = useBoardDrag({
+    laneOf: (id) => {
+      const deal = deals.find((d) => d.id === id);
+      return deal ? laneOf(deal) : "";
+    },
+    onDrop: drop,
+  });
+
   return (
     <div className="board">
       {lanes.map((lane) => {
@@ -267,12 +272,7 @@ function Board({ deals, onOpen }: { deals: Deal[]; onOpen: (d: Deal) => void }) 
             key={lane.code}
             className={`lane${over === lane.code ? " over" : ""}`}
             aria-label={lane.label}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setOver(lane.code);
-            }}
-            onDragLeave={() => setOver((o) => (o === lane.code ? null : o))}
-            onDrop={() => drop(lane.code)}
+            {...laneProps(lane.code)}
           >
             <div className="lane-head">
               <span className="t-caption">{lane.code === "CLOSED" ? "Sortie" : lane.code}</span>
@@ -286,15 +286,7 @@ function Board({ deals, onOpen }: { deals: Deal[]; onOpen: (d: Deal) => void }) 
                 key={d.id}
                 type="button"
                 className={`card${dragging === d.id ? " dragging" : ""}`}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = "move";
-                  setDragging(d.id);
-                }}
-                onDragEnd={() => {
-                  setDragging(null);
-                  setOver(null);
-                }}
+                {...cardProps(d.id)}
                 onClick={() => onOpen(d)}
               >
                 <div className="card-title">{d.title}</div>

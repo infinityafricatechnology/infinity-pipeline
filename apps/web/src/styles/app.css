@@ -12,6 +12,7 @@
   --surface-2: #f6f7f9;
   --surface-3: #eceff3;
   --sidebar: rgba(233, 236, 241, 0.78);
+  --sidebar-solid: #e9ecf1;
   --ink: #16202c;
   --ink-2: #4a5464;
   --ink-3: #7a8494;
@@ -57,6 +58,7 @@
     --surface-2: #19212e;
     --surface-3: #212a38;
     --sidebar: rgba(18, 24, 34, 0.82);
+    --sidebar-solid: #121822;
     --ink: #e8ecf2;
     --ink-2: #aab3c1;
     --ink-3: #7e8899;
@@ -86,6 +88,7 @@
   --surface-2: #19212e;
   --surface-3: #212a38;
   --sidebar: rgba(18, 24, 34, 0.82);
+  --sidebar-solid: #121822;
   --ink: #e8ecf2;
   --ink-2: #aab3c1;
   --ink-3: #7e8899;
@@ -179,8 +182,10 @@ a {
   color: var(--accent);
   text-decoration: none;
 }
-a:hover {
-  color: var(--accent-hover);
+@media (hover: hover) {
+  a:hover {
+    color: var(--accent-hover);
+  }
 }
 :focus-visible {
   outline: none;
@@ -252,9 +257,8 @@ a:hover {
   flex-direction: column;
   gap: 2px;
   padding: 18px 12px 14px;
-  background: var(--sidebar);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  /* Rien ne défile sous la barre latérale sur grand écran : une matière opaque suffit (pas de flou inutile). */
+  background: var(--sidebar-solid);
   border-right: 1px solid var(--hairline);
   overflow-y: auto;
 }
@@ -265,8 +269,10 @@ a:hover {
   padding: 4px 10px 18px;
   color: var(--ink);
 }
-.brand:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .brand:hover {
+    color: var(--ink);
+  }
 }
 .brand svg {
   width: 30px;
@@ -309,9 +315,11 @@ a:hover {
   flex: none;
   color: var(--ink-3);
 }
-.nav-link:hover {
-  background: var(--hairline);
-  color: var(--ink);
+@media (hover: hover) {
+  .nav-link:hover {
+    background: var(--hairline);
+    color: var(--ink);
+  }
 }
 .nav-link.active {
   background: var(--surface);
@@ -413,8 +421,10 @@ a:hover {
     background 120ms ease,
     transform 120ms ease;
 }
-.btn:hover {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .btn:hover {
+    background: var(--surface-2);
+  }
 }
 .btn:active {
   transform: scale(0.98);
@@ -428,8 +438,10 @@ a:hover {
   border-color: transparent;
   color: var(--on-accent);
 }
-.btn-primary:hover {
-  background: var(--accent-fill-hover);
+@media (hover: hover) {
+  .btn-primary:hover {
+    background: var(--accent-fill-hover);
+  }
 }
 .btn-danger {
   color: var(--red);
@@ -440,8 +452,10 @@ a:hover {
   color: var(--accent);
   padding: 0 8px;
 }
-.btn-plain:hover {
-  background: var(--accent-tint);
+@media (hover: hover) {
+  .btn-plain:hover {
+    background: var(--accent-tint);
+  }
 }
 .btn:disabled {
   opacity: 0.45;
@@ -625,8 +639,10 @@ a:hover {
 .row.flush + .row.flush::before {
   left: 16px;
 }
-.row:hover {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .row:hover {
+    background: var(--surface-2);
+  }
 }
 .row-main {
   flex: 1;
@@ -698,8 +714,10 @@ a:hover {
   cursor: pointer;
   transition: background 100ms ease;
 }
-.table tbody tr:hover {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .table tbody tr:hover {
+    background: var(--surface-2);
+  }
 }
 .table .right {
   text-align: right;
@@ -899,9 +917,13 @@ a:hover {
   color: inherit;
   text-decoration: none;
 }
-.hero-side a:hover strong,
 .hero-side a:focus-visible strong {
   color: var(--accent);
+}
+@media (hover: hover) {
+  .hero-side a:hover strong {
+    color: var(--accent);
+  }
 }
 
 .ribbon {
@@ -933,9 +955,13 @@ a:hover {
   cursor: pointer;
   transition: background 140ms ease;
 }
-.ribbon-col:hover,
 .ribbon-col.hot {
   background: var(--surface-2);
+}
+@media (hover: hover) {
+  .ribbon-col:hover {
+    background: var(--surface-2);
+  }
 }
 .ribbon-col .stage-code {
   display: block;
@@ -1152,12 +1178,41 @@ a:hover {
     box-shadow 160ms ease,
     opacity 160ms ease;
 }
-.card:hover {
-  box-shadow: var(--shadow-pop);
+@media (hover: hover) {
+  .card:hover {
+    box-shadow: var(--shadow-pop);
+  }
 }
-.card.dragging {
-  opacity: 0.4;
+.card {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.card:active {
   transform: scale(0.98);
+}
+/* Place laissée par la carte saisie : on voit d'où elle vient. */
+.card.dragging {
+  opacity: 0.35;
+  transform: scale(0.98);
+  box-shadow: inset 0 0 0 1.5px var(--hairline-strong);
+}
+/* Copie flottante de la carte qui suit le pointeur. */
+.card-ghost {
+  position: fixed;
+  z-index: 70;
+  margin: 0;
+  pointer-events: none;
+  cursor: grabbing;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.1), 0 24px 48px -12px rgba(16, 24, 40, 0.35);
+  will-change: transform;
+}
+.card-ghost.settling {
+  box-shadow: var(--shadow-1);
+}
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
 }
 .card-title {
   font-weight: 560;
@@ -1408,8 +1463,10 @@ a:hover {
     opacity 160ms ease,
     transform 260ms var(--ease);
 }
-.check:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .check:hover {
+    border-color: var(--accent);
+  }
 }
 .check.on {
   background: var(--accent-fill);
@@ -1830,7 +1887,13 @@ a:hover {
   *::before,
   *::after {
     animation-duration: 1ms !important;
+    /* Une seule itération : une boucle infinie de 1 ms ferait clignoter (squelette de chargement). */
+    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+  .skeleton {
+    animation: none;
+    background: var(--surface-3);
   }
 }
 
@@ -1985,9 +2048,11 @@ a:hover {
   cursor: pointer;
   transition: background 120ms ease;
 }
-.page-btn:hover {
-  background: var(--hairline);
-  color: var(--ink);
+@media (hover: hover) {
+  .page-btn:hover {
+    background: var(--hairline);
+    color: var(--ink);
+  }
 }
 .page-btn.on {
   background: var(--surface);
@@ -2078,9 +2143,11 @@ kbd {
   cursor: pointer;
   text-align: left;
 }
-.search-trigger:hover {
-  color: var(--ink-2);
-  border-color: var(--ink-4);
+@media (hover: hover) {
+  .search-trigger:hover {
+    color: var(--ink-2);
+    border-color: var(--ink-4);
+  }
 }
 .search-trigger svg {
   width: 15px;
@@ -2208,9 +2275,13 @@ kbd {
   color: inherit;
   cursor: pointer;
 }
-.table th .sort:hover,
 .table th .sort.on {
   color: var(--ink);
+}
+@media (hover: hover) {
+  .table th .sort:hover {
+    color: var(--ink);
+  }
 }
 .table th.right .sort {
   flex-direction: row-reverse;
@@ -2280,8 +2351,10 @@ button.brand {
   cursor: pointer;
   border-radius: var(--radius-m);
 }
-button.brand:hover {
-  background: var(--hairline);
+@media (hover: hover) {
+  button.brand:hover {
+    background: var(--hairline);
+  }
 }
 button.brand:focus-visible {
   outline: none;
@@ -2328,7 +2401,13 @@ button.brand:focus-visible {
   border: 1px solid var(--hairline);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-pop);
-  animation: pop 160ms var(--ease);
+  /* Le menu naît de la marque qui l'ouvre, et y retourne. */
+  transform-origin: top center;
+  animation: menu-in 160ms var(--ease) both;
+}
+.space-menu.leaving {
+  animation: menu-out 120ms ease-in both;
+  pointer-events: none;
 }
 .space-menu-head {
   padding: 6px 10px 4px;
@@ -2350,10 +2429,15 @@ button.brand:focus-visible {
   text-align: left;
   cursor: pointer;
 }
-.space-option:hover,
 .space-option:focus-visible {
   background: var(--surface-2);
   outline: none;
+}
+@media (hover: hover) {
+  .space-option:hover {
+    background: var(--surface-2);
+    outline: none;
+  }
 }
 .space-option > svg:first-child {
   width: 34px;
@@ -2400,9 +2484,11 @@ button.brand:focus-visible {
   text-align: left;
   cursor: pointer;
 }
-.space-jump:hover {
-  background: var(--hairline);
-  color: var(--ink);
+@media (hover: hover) {
+  .space-jump:hover {
+    background: var(--hairline);
+    color: var(--ink);
+  }
 }
 .space-jump svg {
   width: 18px;
@@ -2478,10 +2564,12 @@ button.brand:focus-visible {
     transform 240ms var(--ease),
     box-shadow 240ms var(--ease);
 }
-.space-card:hover {
-  color: var(--ink);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-pop);
+@media (hover: hover) {
+  .space-card:hover {
+    color: var(--ink);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-pop);
+  }
 }
 .space-card:focus-visible {
   outline: none;
@@ -2703,4 +2791,235 @@ button.brand:focus-visible {
   /* Fond opaque (les filets entre cases restent visibles) : le formulaire défile dessous. */
   background: var(--surface-3);
   box-shadow: 0 6px 16px -10px rgba(16, 24, 40, 0.35);
+}
+
+/* ---------- Retour immédiat, sorties, gestes (audit « Apple Design ») ---------- */
+
+/* Retour à la pression : instantané, dès le contact, sur tout ce qui s'ouvre ou se choisit. */
+.table tbody tr:active,
+.row:active,
+.nav-link:active,
+.search-trigger:active,
+.space-option:active,
+.space-jump:active,
+.page-btn:active,
+.ribbon-col:active,
+.check:active {
+  background: var(--surface-3);
+  transition-duration: 0ms;
+}
+.segmented button:active,
+.toast-action:active,
+button.brand:active {
+  transform: scale(0.97);
+}
+.space-card:active {
+  transform: scale(0.985);
+  transition-duration: 80ms;
+}
+
+/* Sorties : chaque élément repart par le chemin qui l'a amené. */
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop-out {
+  to {
+    transform: scale(0.985) translateY(8px);
+    opacity: 0;
+  }
+}
+@keyframes sink {
+  to {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+@keyframes menu-in {
+  from {
+    transform: scale(0.96) translateY(-4px);
+    opacity: 0;
+  }
+}
+@keyframes menu-out {
+  to {
+    transform: scale(0.96) translateY(-4px);
+    opacity: 0;
+  }
+}
+.scrim.leaving {
+  animation: fade-out 180ms ease-in both;
+  pointer-events: none;
+}
+.sheet.leaving {
+  animation: pop-out 180ms ease-in both;
+  pointer-events: none;
+}
+.toast.leaving {
+  animation: sink 180ms ease-in both;
+  pointer-events: none;
+}
+.drawer-scrim {
+  z-index: 45;
+}
+@media (min-width: 861px) {
+  .drawer-scrim {
+    display: none;
+  }
+}
+
+/* Fenêtre d'édition : l'en-tête se glisse vers le bas pour fermer (poignée visible au doigt). */
+.sheet-head {
+  position: relative;
+  touch-action: none;
+}
+.sheet-grabber {
+  display: none;
+}
+@media (pointer: coarse) {
+  .sheet-grabber {
+    display: block;
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 36px;
+    height: 5px;
+    margin-left: -18px;
+    border-radius: 3px;
+    background: var(--hairline-strong);
+  }
+}
+@media (max-width: 860px) {
+  /* Le tiroir de navigation se referme d'un glissement horizontal ; le défilement vertical reste natif. */
+  .sidebar {
+    touch-action: pan-y;
+  }
+}
+
+/* Boîte de confirmation (remplace window.confirm). */
+.confirm-scrim {
+  z-index: 80;
+}
+.confirm {
+  position: fixed;
+  z-index: 81;
+  top: 50%;
+  left: 50%;
+  width: min(400px, calc(100vw - 32px));
+  translate: -50% -50%;
+  padding: 22px 22px 18px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  animation: pop 200ms var(--ease) both;
+}
+.confirm.leaving {
+  animation: pop-out 140ms ease-in both;
+  pointer-events: none;
+}
+.confirm h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 640;
+  letter-spacing: -0.012em;
+}
+.confirm p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.confirm .btn-danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+@media (hover: hover) {
+  .confirm .btn-danger:hover {
+    background: color-mix(in srgb, var(--red) 88%, black);
+  }
+}
+
+/* Facilité de commercialisation : un point de couleur, pas une marque d'alerte. */
+.ease {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 560;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.ease::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neutral-mark);
+}
+.ease.high::before {
+  background: var(--green);
+}
+.ease.medium::before {
+  background: var(--amber);
+}
+.ease.low::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--neutral-mark);
+}
+
+/* Préférences d'accessibilité : matières pleines, contrastes renforcés. */
+@media (prefers-reduced-transparency: reduce) {
+  .topbar,
+  .sidebar {
+    background: var(--sidebar-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .space-card-last {
+    backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .scrim {
+    background: rgba(10, 16, 26, 0.45);
+  }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --hairline: rgba(255, 255, 255, 0.3);
+    --hairline-strong: rgba(255, 255, 255, 0.48);
+  }
+}
+@media (prefers-contrast: more) {
+  :root:not([data-theme="dark"]) {
+    --hairline: rgba(16, 24, 40, 0.32);
+    --hairline-strong: rgba(16, 24, 40, 0.5);
+  }
+  :root[data-theme="dark"] {
+    --hairline: rgba(255, 255, 255, 0.3);
+    --hairline-strong: rgba(255, 255, 255, 0.48);
+  }
+  .topbar,
+  .sidebar {
+    background: var(--sidebar-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .card,
+  .group,
+  .table-wrap,
+  .figure,
+  .sheet,
+  .confirm,
+  .space-menu {
+    border: 1px solid var(--hairline-strong);
+  }
 }

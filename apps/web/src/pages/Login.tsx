@@ -1,9 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { IatMark } from "../components/Logo";
+import { IapMark, IapWordmark, IatMark } from "../components/Logo";
 import { APP_NAME } from "../components/Shell";
 import { api, ApiError } from "../lib/api";
+import { applySpaceTheme } from "../lib/space";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -16,6 +17,8 @@ export function Login() {
   const retour = params.get("retour");
   const target = retour && retour.startsWith("/") && !retour.startsWith("//") ? retour : "/";
   const client = useQueryClient();
+  // Écran commun aux filiales : couleurs neutres, avant de savoir quel espace sera ouvert.
+  useEffect(() => applySpaceTheme(null), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -35,13 +38,19 @@ export function Login() {
   return (
     <div className="login">
       <div className="login-art">
-        <IatMark className="mark" />
-        <p>Chaque affaire, chaque échéance, chaque client d’IAT, au même endroit.</p>
-        <small>{APP_NAME} · Infinity Africa Technologies</small>
+        <span className="login-marks">
+          <IatMark className="mark" />
+          <IapMark className="mark" />
+        </span>
+        <p>Chaque affaire, chaque échéance, chaque client d’IAT et d’IAP, au même endroit.</p>
+        <small>{APP_NAME} · Infinity Africa Technologies · Infinity Africa Properties</small>
       </div>
       <div className="login-form">
         <form onSubmit={submit}>
-          <img src="/logo-iat.webp" alt="Infinity Africa Technologies" />
+          <span className="login-logos">
+            <img src="/logo-iat.webp" alt="Infinity Africa Technologies" />
+            <IapWordmark />
+          </span>
           <h1 className="t-title">Connexion</h1>
           {retour && <p className="t-caption" style={{ margin: "-6px 0 0" }}>Connectez-vous pour ouvrir la page demandée.</p>}
           <div className="field">

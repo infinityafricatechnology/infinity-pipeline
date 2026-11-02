@@ -95,7 +95,7 @@ export function Contacts() {
                     </td>
                     <td>
                       {c.account_slug ? (
-                        <Link to={`/comptes/${c.account_slug}`} onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/iat/comptes/${c.account_slug}`} onClick={(e) => e.stopPropagation()}>
                           {c.company ?? c.account_name}
                         </Link>
                       ) : (

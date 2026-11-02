@@ -1,7 +1,7 @@
 {
   "name": "Infinity Pipeline",
-  "short_name": "Pipeline IAT",
-  "description": "Pipeline commercial d'IAT : affaires, renouvellements, actions et contacts",
+  "short_name": "Pipeline",
+  "description": "Pipeline commercial des filiales Infinity Africa : IAT (technologies) et IAP (immobilier)",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F1F3F6",

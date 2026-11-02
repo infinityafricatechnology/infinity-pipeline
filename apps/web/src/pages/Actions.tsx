@@ -1,13 +1,19 @@
 import { type FormEvent, useState } from "react";
 import { IconCheck, IconPlus } from "../components/icons";
 import { Pagination, usePaged } from "../components/Pagination";
+import { IapActionSheet } from "../components/iap-sheets";
 import { ActionSheet, LEADS } from "../components/sheets";
 import { Due, Empty, FilterSelect, Loading, Prio, Search, useToast } from "../components/ui";
 import { type Page, qs, useApi, useSave } from "../lib/api";
 import { useDeepLink } from "../lib/deeplink";
-import type { Action } from "../lib/types";
+import { useSpace } from "../lib/space";
+import { type Action, IAP_PEOPLE, type IapAction } from "../lib/types";
 
-const GROUPS: { key: string; label: string; test: (a: Action) => boolean }[] = [
+/** Une action d'IAT ou d'IAP : mêmes champs de suivi, rattachement différent (compte ou affaire). */
+type AnyAction = Action | IapAction;
+const relatedOf = (a: AnyAction) => ("deal_title" in a ? (a.deal_title ? `Affaire ${a.deal_number} · ${a.deal_title}` : null) : a.related_to);
+
+const GROUPS: { key: string; label: string; test: (a: AnyAction) => boolean }[] = [
   { key: "late", label: "En retard", test: (a) => a.overdue },
   { key: "week", label: "Cette semaine", test: (a) => !a.done && !a.overdue && a.days_to_due != null && a.days_to_due <= 7 },
   { key: "later", label: "Plus tard", test: (a) => !a.done && a.days_to_due != null && a.days_to_due > 7 },
@@ -15,20 +21,23 @@ const GROUPS: { key: string; label: string; test: (a: Action) => boolean }[] = [
 ];
 
 export function ActionsPage() {
+  const space = useSpace();
+  const iap = space.code === "iap";
+  const owners = iap ? IAP_PEOPLE : LEADS;
   const [q, setQ] = useState("");
   const [owner, setOwner] = useState("");
   const [priority, setPriority] = useState("");
   const [showDone, setShowDone] = useState(false);
-  const [open, setOpen] = useState<Action | null>(null);
+  const [open, setOpen] = useState<AnyAction | null>(null);
   // Les actions ajoutées restent en tête tant qu'on est sur la page : on voit tout de suite ce qu'on vient de créer.
   const [justAdded, setJustAdded] = useState<number[]>([]);
-  const clearLink = useDeepLink<Action>("action", (n) => `/actions?number=${n}`, setOpen);
-  const { data, isLoading } = useApi<Page<Action>>(`/actions${qs({ q, owner, priority, limit: 500 })}`, { keepPrevious: true });
+  const clearLink = useDeepLink<AnyAction>("action", (n) => `${space.api}/actions?number=${n}`, setOpen);
+  const { data, isLoading } = useApi<Page<AnyAction>>(`${space.api}/actions${qs({ q, owner, priority, limit: 500 })}`, { keepPrevious: true });
   const actions = data?.results ?? [];
   const done = actions.filter((a) => a.done);
   const filterKey = `${q}|${owner}|${priority}`;
   // La liste est triée par l'API (retards et échéances proches d'abord) ; les groupes se forment dans chaque page.
-  const added = justAdded.map((id) => actions.find((a) => a.id === id)).filter((a): a is Action => !!a && !a.done);
+  const added = justAdded.map((id) => actions.find((a) => a.id === id)).filter((a): a is AnyAction => !!a && !a.done);
   const paged = usePaged(
     actions.filter((a) => !a.done && !justAdded.includes(a.id)),
     filterKey,
@@ -48,7 +57,7 @@ export function ActionsPage() {
       </div>
       <div className="toolbar">
         <Search value={q} onChange={setQ} placeholder="Rechercher une action" />
-        <FilterSelect label="Responsable" value={owner} onChange={setOwner} options={LEADS} />
+        <FilterSelect label="Responsable" value={owner} onChange={setOwner} options={owners} />
         <FilterSelect label="Priorité" value={priority} onChange={setPriority} options={["P1", "P2", "P3"]} />
       </div>
 
@@ -116,20 +125,30 @@ export function ActionsPage() {
           )}
         </>
       )}
-      {open && (
-        <ActionSheet
-          action={open}
-          onClose={() => {
-            setOpen(null);
-            clearLink();
-          }}
-        />
-      )}
+      {open &&
+        (iap ? (
+          <IapActionSheet
+            action={open as IapAction}
+            onClose={() => {
+              setOpen(null);
+              clearLink();
+            }}
+          />
+        ) : (
+          <ActionSheet
+            action={open as Action}
+            onClose={() => {
+              setOpen(null);
+              clearLink();
+            }}
+          />
+        ))}
     </div>
   );
 }
 
-export function ActionRow({ action, onOpen }: { action: Action; onOpen: () => void }) {
+export function ActionRow({ action, onOpen }: { action: AnyAction; onOpen: () => void }) {
+  const { api: prefix } = useSpace();
   const save = useSave();
   const toast = useToast();
   const [checked, setChecked] = useState(action.done);
@@ -138,12 +157,12 @@ export function ActionRow({ action, onOpen }: { action: Action; onOpen: () => vo
     const previous = action.status;
     setChecked(next);
     save.mutate(
-      { method: "patch", path: `/actions/${action.id}`, body: { status: next ? "Fait" : "À faire" } },
+      { method: "patch", path: `${prefix}/actions/${action.id}`, body: { status: next ? "Fait" : "À faire" } },
       {
         onSuccess: () =>
           toast(next ? "Action faite" : "Action rouverte", false, {
             label: "Annuler",
-            onClick: () => save.mutate({ method: "patch", path: `/actions/${action.id}`, body: { status: previous } }),
+            onClick: () => save.mutate({ method: "patch", path: `${prefix}/actions/${action.id}`, body: { status: previous } }),
           }),
         onError: (error) => {
           setChecked(!next);
@@ -152,7 +171,7 @@ export function ActionRow({ action, onOpen }: { action: Action; onOpen: () => vo
       },
     );
   };
-  const meta = [action.related_to, action.owner].filter(Boolean).join(" · ");
+  const meta = [relatedOf(action), action.owner].filter(Boolean).join(" · ");
   return (
     <div className={`row${checked ? " done" : ""}`} style={{ cursor: "default" }}>
       <button type="button" className={`check${checked ? " on" : ""}`} onClick={toggle} aria-pressed={checked} aria-label={checked ? "Rouvrir l’action" : "Marquer comme faite"}>
@@ -176,6 +195,7 @@ export function ActionRow({ action, onOpen }: { action: Action; onOpen: () => vo
 }
 
 function QuickAdd({ onCreated }: { onCreated: (id: number) => void }) {
+  const space = useSpace();
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   const [priority, setPriority] = useState("");
@@ -187,15 +207,21 @@ function QuickAdd({ onCreated }: { onCreated: (id: number) => void }) {
     save.mutate(
       {
         method: "post",
-        path: "/actions",
-        body: { title: title.trim(), status: "À faire", owner: "Commercial IAT", due_date: due || undefined, priority: priority || undefined },
+        path: `${space.api}/actions`,
+        body: {
+          title: title.trim(),
+          status: "À faire",
+          owner: space.code === "iap" ? undefined : "Commercial IAT",
+          due_date: due || undefined,
+          priority: priority || undefined,
+        },
       },
       {
         onSuccess: (created) => {
           setTitle("");
           setDue("");
           setPriority("");
-          onCreated((created as Action).id);
+          onCreated((created as AnyAction).id);
           toast("Action ajoutée");
         },
         onError: (error) => toast(error.message, true),

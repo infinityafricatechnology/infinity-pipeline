@@ -32,7 +32,7 @@ export function Overview() {
           <div className="t-caption">{longDate(s.as_of)}</div>
           <h1 className="t-title">Pipeline commercial</h1>
         </div>
-        <Link to="/affaires" className="btn">
+        <Link to="/iat/affaires" className="btn">
           Voir les {p.deals_count} affaires
         </Link>
       </div>
@@ -59,7 +59,7 @@ export function Overview() {
             </div>
           </div>
         </div>
-        <PipelineRibbon stages={s.by_stage} onSelect={(code) => navigate(`/affaires?stage=${code}`)} />
+        <PipelineRibbon stages={s.by_stage} onSelect={(code) => navigate(`/iat/affaires?stage=${code}`)} />
         <div className="ribbon-foot">
           <span>L’épaisseur du ruban suit le montant engagé à chaque étape.</span>
           {closed.map((g) => (
@@ -83,7 +83,7 @@ export function Overview() {
         </div>
         <div className="figure">
           <div className="figure-label">
-            <i style={{ background: "var(--blue)" }} />
+            <i style={{ background: "var(--accent)" }} />
             Offres remises ou en signature
           </div>
           <div className="figure-value num" title={fcfa(p.offers_amount)}>
@@ -118,7 +118,7 @@ export function Overview() {
             <h2 className="t-headline" id="todo">
               À traiter cette semaine
             </h2>
-            <Link to="/actions" className="t-caption">
+            <Link to="/iat/actions" className="t-caption">
               Tout le plan d’actions
             </Link>
           </div>
@@ -166,7 +166,7 @@ export function Overview() {
                       <ActionRow key={`${a.id}-${a.done}`} action={a} onOpen={() => setOpen({ kind: "action", item: a })} />
                     ))}
                     {agenda.actions.length > ACTIONS_SHOWN && (
-                      <Link to="/actions" className="row flush" style={{ minHeight: 44, color: "var(--blue)" }}>
+                      <Link to="/iat/actions" className="row flush" style={{ minHeight: 44, color: "var(--accent)" }}>
                         Voir les {agenda.actions.length - ACTIONS_SHOWN} autres actions de la semaine
                       </Link>
                     )}
@@ -237,7 +237,7 @@ export function Overview() {
                       </span>
                     </span>
                   }
-                  onClick={() => navigate(`/comptes/${a.slug}`)}
+                  onClick={() => navigate(`/iat/comptes/${a.slug}`)}
                 />
               );
             })}
@@ -245,7 +245,7 @@ export function Overview() {
           {b.expired_count > 0 && (
             <p className="t-caption" style={{ marginTop: 10 }}>
               {b.expired_count} contrats échus non renouvelés, pour {compact(b.expired_amount)} de récurrent annuel.{" "}
-              <Link to="/renouvellements">Voir les renouvellements</Link>
+              <Link to="/iat/renouvellements">Voir les renouvellements</Link>
             </p>
           )}
 
@@ -265,7 +265,7 @@ export function Overview() {
               </thead>
               <tbody>
                 {s.by_lead.map((g) => (
-                  <tr key={g.key} onClick={() => navigate(`/affaires?lead=${encodeURIComponent(g.key)}`)}>
+                  <tr key={g.key} onClick={() => navigate(`/iat/affaires?lead=${encodeURIComponent(g.key)}`)}>
                     <td>{g.key}</td>
                     <td className="right num">{g.count}</td>
                     <td className="right">

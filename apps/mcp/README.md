@@ -35,6 +35,18 @@ Lecture (`readOnlyHint`) :
 | `create_prospects`, `update_prospects` | Prospects par solution |
 | `delete_deal`, `delete_action` | Destructifs (`destructiveHint`) : Claude doit demander confirmation |
 
+Espace IAP (Infinity Africa Properties, immobilier), préfixe `iap_`, réservé aux comptes autorisés sur IAP :
+
+| Outil | Rôle |
+| --- | --- |
+| `iap_overview` | Portefeuille de biens, commissions attendues / pondérées / perçues, parts à verser, actions et closings de la semaine |
+| `iap_search_deals`, `iap_get_deal` | Affaires immobilières par étape (P0 à P5), commercial, nature, texte ; détail et répartition de la commission |
+| `iap_commissions` | Parts des apporteurs et closeurs (5 % / 10 % / 15 %), par bénéficiaire, versées, à verser ou estimées |
+| `iap_search_actions`, `iap_search_contacts` | Plan d'actions et contacts IAP |
+| `iap_create_deals`, `iap_update_deals` | Affaires IAP, y compris commission perçue et dates de versement des parts |
+| `iap_create_actions`, `iap_update_actions` | Actions IAP, rattachées à une affaire par son numéro |
+| `iap_create_contacts`, `iap_update_contacts` | Acquéreurs, locataires, propriétaires, agences, apporteurs |
+
 Non exposés volontairement : suppression de comptes, de contacts et de factures, gestion des utilisateurs et des jetons.
 
 ## Configuration

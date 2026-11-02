@@ -15,6 +15,7 @@ import {
   today,
 } from "../domain.ts";
 import { ErrorSchema } from "../resource.ts";
+import { SPACE_CODES } from "../spaces.ts";
 import { accountSpec, actionSpec, contactSpec, dealSpec, invoiceSpec, opportunitySpec, renewalSpec } from "./resources.ts";
 
 const json = <S extends z.ZodType>(schema: S, description: string) => ({
@@ -261,17 +262,21 @@ export function registerInsights(app: OpenAPIHono<AppEnv>) {
       tags: ["Journal"],
       operationId: "list_activity",
       summary: "Journal des modifications",
-      description: "Qui a modifié quoi, quand, et par quel canal (web, api, claude).",
+      description: "Qui a modifié quoi, quand, et par quel canal (web, api, claude), dans les filiales autorisées.",
       request: {
         query: z.object({
           entity: z.string().optional(),
           entity_id: z.coerce.number().int().optional(),
           via: z.enum(["web", "api", "claude", "import"]).optional(),
+          space: z.enum(SPACE_CODES).optional().openapi({ description: "Filiale : iat ou iap (par défaut, tous les espaces autorisés)" }),
           limit: z.coerce.number().int().min(1).max(200).default(50),
           offset: z.coerce.number().int().min(0).default(0),
         }),
       },
-      responses: { 200: json(z.record(z.string(), z.unknown()).openapi("ActivityPage"), "Événements, du plus récent au plus ancien") },
+      responses: {
+        200: json(z.record(z.string(), z.unknown()).openapi("ActivityPage"), "Événements, du plus récent au plus ancien"),
+        403: json(ErrorSchema, "Espace non autorisé"),
+      },
     }),
     (c) => {
       const q = c.req.valid("query");
@@ -280,6 +285,10 @@ export function registerInsights(app: OpenAPIHono<AppEnv>) {
       if (q.entity) (clauses.push("e.entity = :entity"), (params.entity = q.entity));
       if (q.entity_id) (clauses.push("e.entity_id = :entity_id"), (params.entity_id = q.entity_id));
       if (q.via) (clauses.push("e.via = :via"), (params.via = q.via));
+      const allowed = c.var.actor.user.spaces;
+      if (q.space && !allowed.includes(q.space)) return c.json({ error: "Espace non autorisé pour ce compte." }, 403);
+      const spaces = q.space ? [q.space] : allowed;
+      clauses.push(`COALESCE(e.space, 'iat') IN (${spaces.map((s) => `'${s}'`).join(", ")})`);
       const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const { limit: _l, offset: _o, ...filters } = params;
       const total = Number(one<{ n: number }>(c.var.db, `SELECT COUNT(*) AS n FROM activity e ${where}`, filters)!.n);

@@ -4,6 +4,9 @@
  *
  *   pnpm seed            base vide seulement
  *   pnpm seed --force    efface les données métier puis recharge (utilisateurs et jetons conservés)
+ *
+ * Les données d'IAP (data/seed-iap.json, produit par `pnpm import-iap`) sont chargées de la même façon,
+ * indépendamment : une base IAT déjà remplie reçoit les données IAP si l'espace IAP est vide.
  */
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -44,6 +47,34 @@ export function loadSeed(db: DatabaseSync, data: Record<string, Item[]>) {
   for (const { solution: s, ...p } of data.prospects) insert(db, "prospects", { ...p, solution_id: solution(s) });
   for (const { solution: s, ...p } of data.pitches) insert(db, "pitches", { ...p, solution_id: solution(s) });
   for (const { account: k, ...a } of data.actions) insert(db, "actions", { ...a, account_id: account(k) });
+}
+
+const IAP_TABLES = ["iap_actions", "iap_contacts", "iap_deals"];
+
+export function loadIapSeed(db: DatabaseSync, data: { deals: Item[]; actions?: Item[]; contacts?: Item[] }) {
+  const dealIds = new Map<number, number>();
+  for (const d of data.deals) dealIds.set(Number(d.number), insert(db, "iap_deals", d));
+  for (const { deal, ...a } of data.actions ?? []) insert(db, "iap_actions", { ...a, deal_id: deal ? (dealIds.get(Number(deal)) ?? null) : null });
+  for (const c of data.contacts ?? []) insert(db, "iap_contacts", c);
+}
+
+function seedIap(db: DatabaseSync, force: boolean) {
+  const file = resolve(projectRoot, process.env.IAP_SEED_PATH ?? "data/seed-iap.json");
+  if (!existsSync(file)) return;
+  if (one(db, "SELECT id FROM iap_deals LIMIT 1") && !force) {
+    console.log("L'espace IAP contient déjà des données : rien n'est rechargé.");
+    return;
+  }
+  const data = JSON.parse(readFileSync(file, "utf8"));
+  transaction(db, () => {
+    if (force) {
+      for (const table of IAP_TABLES) db.exec(`DELETE FROM ${table}`);
+      db.exec("DELETE FROM activity WHERE space = 'iap'");
+    }
+    loadIapSeed(db, data);
+  });
+  const counts = Object.fromEntries(IAP_TABLES.map((t) => [t, one<{ n: number }>(db, `SELECT COUNT(*) AS n FROM ${t}`)!.n]));
+  console.log("Données IAP chargées :", counts);
 }
 
 /**
@@ -87,7 +118,10 @@ if (import.meta.main) {
   } else {
     const data = JSON.parse(readFileSync(file, "utf8"));
     transaction(db, () => {
-      if (force) for (const table of BUSINESS_TABLES) db.exec(`DELETE FROM ${table}`);
+      if (force) {
+        db.exec("DELETE FROM activity WHERE COALESCE(space, 'iat') = 'iat'");
+        for (const table of BUSINESS_TABLES) if (table !== "activity") db.exec(`DELETE FROM ${table}`);
+      }
       loadSeed(db, data);
     });
     const counts = Object.fromEntries(
@@ -95,6 +129,7 @@ if (import.meta.main) {
     );
     console.log("Données chargées :", counts);
   }
+  seedIap(db, force);
   ensureAdmin(db);
   db.close();
 }

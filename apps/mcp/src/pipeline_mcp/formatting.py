@@ -20,7 +20,7 @@ def account(settings: Settings, a: dict) -> dict:
             "health": a.get("health"),
             "deals_count": a.get("deals_count"),
             "open_amount": a.get("open_amount") or None,
-            "url": f"{settings.web_url}/comptes/{a['slug']}",
+            "url": f"{settings.web_url}/iat/comptes/{a['slug']}",
         }
     )
 
@@ -42,7 +42,7 @@ def deal(settings: Settings, d: dict) -> dict:
             "overdue": d.get("overdue") or None,
             "next_step": d.get("next_step"),
             "lead": d.get("lead"),
-            "url": f"{settings.web_url}/affaires?affaire={d['number']}",
+            "url": f"{settings.web_url}/iat/affaires?affaire={d['number']}",
         }
     )
 
@@ -77,7 +77,7 @@ def action(settings: Settings, a: dict) -> dict:
             "related_to": a.get("related_to"),
             "account": a.get("account_name"),
             "comments": a.get("comments"),
-            "url": f"{settings.web_url}/actions?action={a['number']}",
+            "url": f"{settings.web_url}/iat/actions?action={a['number']}",
         }
     )
 
@@ -99,7 +99,7 @@ def renewal(settings: Settings, r: dict) -> dict:
             "last_reminder_date": r.get("last_reminder_date"),
             "next_action": r.get("next_action"),
             "owner": r.get("owner"),
-            "url": f"{settings.web_url}/renouvellements?contrat={r['id']}",
+            "url": f"{settings.web_url}/iat/renouvellements?contrat={r['id']}",
         }
     )
 
@@ -117,7 +117,7 @@ def contact(settings: Settings, c: dict) -> dict:
             "profile": c.get("profile"),
             "status": c.get("status"),
             "last_contact": c.get("last_contact"),
-            "url": f"{settings.web_url}/contacts?contact={c['id']}",
+            "url": f"{settings.web_url}/iat/contacts?contact={c['id']}",
         }
     )
 

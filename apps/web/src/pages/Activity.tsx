@@ -4,6 +4,7 @@ import { PAGE_SIZE, Pagination } from "../components/Pagination";
 import { Empty, Loading, Segmented } from "../components/ui";
 import { useApi } from "../lib/api";
 import { dateTime } from "../lib/format";
+import { useSpace } from "../lib/space";
 import type { Activity } from "../lib/types";
 
 const ENTITIES: Record<string, string> = {
@@ -18,16 +19,20 @@ const ENTITIES: Record<string, string> = {
   solution: "Solution",
   prospect: "Prospect",
   pitch: "Pitch",
+  iap_deal: "Affaire",
+  iap_action: "Action",
+  iap_contact: "Contact",
 };
 const VERBS = { create: "a créé", update: "a modifié", delete: "a supprimé" };
 
 export function ActivityPage() {
+  const space = useSpace();
   const [via, setVia] = useState<"" | "claude" | "web">("");
   const [page, setPage] = useState(1);
   useEffect(() => setPage(1), [via]);
   // Pagination côté serveur : le journal ne fait que grandir.
   const { data } = useApi<{ results: Activity[]; total: number }>(
-    `/activity?limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}${via ? `&via=${via}` : ""}`,
+    `/activity?space=${space.code}&limit=${PAGE_SIZE}&offset=${(page - 1) * PAGE_SIZE}${via ? `&via=${via}` : ""}`,
     { keepPrevious: true },
   );
 
@@ -36,7 +41,10 @@ export function ActivityPage() {
       <div className="page-head">
         <div>
           <h1 className="t-title">Journal</h1>
-          <p className="lede">Chaque création, modification et suppression, avec son auteur et le canal utilisé. Les actions faites par Claude sont signalées.</p>
+          <p className="lede">
+            Chaque création, modification et suppression dans l’espace {space.name}, avec son auteur et le canal utilisé. Les actions faites par Claude sont
+            signalées.
+          </p>
         </div>
       </div>
       <div className="toolbar">

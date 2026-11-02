@@ -23,7 +23,7 @@ export type Where = { clauses: string[]; params: Params };
 
 export type ResourceSpec<Q extends z.ZodObject = z.ZodObject> = {
   entity: Entity;
-  /** Segment d'URL, ex. « deals ». */
+  /** Segment d'URL, ex. « deals » ou « iap/deals ». */
   path: string;
   table: string;
   tag: string;
@@ -195,13 +195,15 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
     .extend(spec.filters?.shape ?? {});
   const tags = [spec.tag];
   const P = spec.path;
+  /** Identifiant d'opération OpenAPI : « iap/deals » donne « iap_deals ». */
+  const op = P.replace(/\W/g, "_");
 
   app.openapi(
     createRoute({
       method: "get",
       path: `/${P}`,
       tags,
-      operationId: `list_${P}`,
+      operationId: `list_${op}`,
       summary: `Lister (${spec.tag})`,
       description: spec.description,
       request: { query: Query },
@@ -221,7 +223,7 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
       method: "post",
       path: `/${P}/batch`,
       tags,
-      operationId: `create_${P}_batch`,
+      operationId: `create_${op}_batch`,
       summary: `Créer jusqu'à ${BATCH_MAX} éléments`,
       description: "Tout ou rien : si un élément est refusé, aucun n'est créé et l'erreur indique son rang.",
       request: { body: { ...json(BatchCreate, "Éléments à créer"), required: true } },
@@ -242,7 +244,7 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
       method: "patch",
       path: `/${P}/batch`,
       tags,
-      operationId: `update_${P}_batch`,
+      operationId: `update_${op}_batch`,
       summary: `Modifier jusqu'à ${BATCH_MAX} éléments`,
       description: "Tout ou rien : chaque élément porte son `id` et les seuls champs à modifier.",
       request: { body: { ...json(BatchUpdate, "Modifications"), required: true } },
@@ -263,7 +265,7 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
       method: "get",
       path: `/${P}/{id}`,
       tags,
-      operationId: `get_${P}`,
+      operationId: `get_${op}`,
       summary: `Lire ${spec.noun}`,
       request: { params: IdParam },
       responses: { 200: json(Output, "L'élément, valeurs calculées comprises"), 401: errors[401], 404: errors[404] },
@@ -281,7 +283,7 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
       method: "post",
       path: `/${P}`,
       tags,
-      operationId: `create_${P}`,
+      operationId: `create_${op}`,
       summary: `Créer ${spec.noun}`,
       request: { body: { ...json(Input, "Champs de l'élément"), required: true } },
       responses: { 201: json(Output, "Élément créé"), 400: errors[400], 401: errors[401] },
@@ -298,7 +300,7 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
       method: "patch",
       path: `/${P}/{id}`,
       tags,
-      operationId: `update_${P}`,
+      operationId: `update_${op}`,
       summary: `Modifier ${spec.noun}`,
       description: "Seuls les champs envoyés sont modifiés ; `null` efface une valeur.",
       request: { params: IdParam, body: { ...json(Patch, "Champs à modifier"), required: true } },
@@ -318,7 +320,7 @@ export function registerResource(app: OpenAPIHono<AppEnv>, spec: ResourceSpec) {
         method: "delete",
         path: `/${P}/{id}`,
         tags,
-        operationId: `delete_${P}`,
+        operationId: `delete_${op}`,
         summary: `Supprimer ${spec.noun}`,
         description: "Suppression définitive (conservée dans le journal d'activité).",
         request: { params: IdParam },

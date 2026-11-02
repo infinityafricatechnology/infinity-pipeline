@@ -13,7 +13,13 @@ export type Entity =
   | "solution"
   | "prospect"
   | "pitch"
-  | "action";
+  | "action"
+  | "iap_deal"
+  | "iap_action"
+  | "iap_contact";
+
+/** Filiale d'une entité : les entités IAP sont préfixées « iap_ ». */
+export const spaceOf = (entity: string) => (entity.startsWith("iap_") ? "iap" : "iat");
 
 /** Différences champ par champ entre deux versions d'une ligne (horodatages exclus). */
 export function diff(before: Row, after: Row): Record<string, [unknown, unknown]> {
@@ -35,6 +41,6 @@ export function logActivity(
   changes?: Record<string, unknown>,
 ): void {
   db.prepare(
-    "INSERT INTO activity (user_id, via, entity, entity_id, action, label, changes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).run(actor.user.id, actor.via, entity, entityId, action, label, changes ? JSON.stringify(changes) : null);
+    "INSERT INTO activity (user_id, via, entity, entity_id, action, label, changes, space) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(actor.user.id, actor.via, entity, entityId, action, label, changes ? JSON.stringify(changes) : null, spaceOf(entity));
 }

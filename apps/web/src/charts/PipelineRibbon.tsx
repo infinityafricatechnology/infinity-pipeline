@@ -2,6 +2,8 @@ import { useId, useState } from "react";
 import { compact, fcfa } from "../lib/format";
 import { FLOW_STAGES, type Group } from "../lib/types";
 
+type RibbonGroup = Pick<Group, "key" | "count" | "amount" | "weighted_amount">;
+
 const W = 1000;
 const H = 190;
 const MID = H / 2;
@@ -9,14 +11,28 @@ const MAX_HALF = 78;
 const PLATEAU = 34;
 
 /**
- * Le pipeline comme un ruban qui traverse les étapes M0 → M6 : son épaisseur à chaque étape est
+ * Le pipeline comme un ruban qui traverse les étapes (M0 → M6 pour IAT, P0 → P5 pour IAP) : son épaisseur à chaque étape est
  * proportionnelle au montant engagé (échelle linéaire), le ruban vire au vert à « Gagné ».
  * Les affaires non chiffrées gardent un trait fin : leur nombre est donné sous chaque étape.
  */
-export function PipelineRibbon({ stages, onSelect }: { stages: Group[]; onSelect: (code: string) => void }) {
+export function PipelineRibbon({
+  stages,
+  onSelect,
+  flowStages = FLOW_STAGES,
+  noun = "affaire",
+  label = "Montants engagés à chaque étape du pipeline, de M0 à M6",
+}: {
+  stages: RibbonGroup[];
+  onSelect: (code: string) => void;
+  /** Étapes du flux, la dernière étant l'aboutissement (gagné, conclu). Par défaut M0 → M6. */
+  flowStages?: { code: string; label: string; short: string }[];
+  noun?: string;
+  label?: string;
+}) {
+  const FLOW = flowStages;
   const id = useId().replace(/:/g, "");
   const [hot, setHot] = useState<number | null>(null);
-  const flow = FLOW_STAGES.map((s) => stages.find((g) => g.key === s.code) ?? { key: s.code, count: 0, amount: 0, weighted_amount: 0 } as Group);
+  const flow = FLOW.map((s) => stages.find((g) => g.key === s.code) ?? ({ key: s.code, count: 0, amount: 0, weighted_amount: 0 } as RibbonGroup));
   const max = Math.max(...flow.map((g) => g.amount), 1);
   const step = W / flow.length;
   const xs = flow.map((_, i) => (i + 0.5) * step);
@@ -40,18 +56,19 @@ export function PipelineRibbon({ stages, onSelect }: { stages: Group[]; onSelect
     `M ${samples.map((x) => `${x} ${(MID - halfAt(x)).toFixed(2)}`).join(" L ")} L ` +
     `${[...samples].reverse().map((x) => `${x} ${(MID + halfAt(x)).toFixed(2)}`).join(" L ")} Z`;
 
-  const wonStart = (xs[5] + PLATEAU / 2) / W;
-  const wonEnd = (xs[6] - PLATEAU / 2) / W;
+  const last = xs.length - 1;
+  const wonStart = (xs[last - 1] + PLATEAU / 2) / W;
+  const wonEnd = (xs[last] - PLATEAU / 2) / W;
   const g = hot != null ? flow[hot] : null;
 
   return (
     <div className="ribbon" onMouseLeave={() => setHot(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Montants engagés à chaque étape du pipeline, de M0 à M6">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
         <defs>
           <linearGradient id={`rg${id}`} x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="var(--blue)" stopOpacity="0.55" />
-            <stop offset={xs[2] / W} stopColor="var(--blue)" stopOpacity="0.8" />
-            <stop offset={wonStart} stopColor="var(--blue)" />
+            <stop offset="0" stopColor="var(--accent-chart)" stopOpacity="0.55" />
+            <stop offset={xs[2] / W} stopColor="var(--accent-chart)" stopOpacity="0.8" />
+            <stop offset={wonStart} stopColor="var(--accent-chart)" />
             <stop offset={wonEnd} stopColor="var(--green)" />
             <stop offset="1" stopColor="var(--green)" />
           </linearGradient>
@@ -77,9 +94,9 @@ export function PipelineRibbon({ stages, onSelect }: { stages: Group[]; onSelect
       </svg>
       {g && hot != null && (
         <div className="ribbon-tip" style={{ left: `${((hot + 0.5) / flow.length) * 100}%`, top: 6 }}>
-          <strong>{FLOW_STAGES[hot].label}</strong>
+          <strong>{FLOW[hot].label}</strong>
           <dl>
-            <dt>Affaires</dt>
+            <dt>{noun.charAt(0).toUpperCase() + noun.slice(1)}s</dt>
             <dd className="num">{g.count}</dd>
             <dt>Montant</dt>
             <dd className="num">{fcfa(g.amount)}</dd>
@@ -88,7 +105,7 @@ export function PipelineRibbon({ stages, onSelect }: { stages: Group[]; onSelect
           </dl>
         </div>
       )}
-      <div className="ribbon-cols">
+      <div className="ribbon-cols" style={{ gridTemplateColumns: `repeat(${FLOW.length}, minmax(0, 1fr))` }}>
         {flow.map((stage, i) => (
           <button
             key={stage.key}
@@ -98,13 +115,14 @@ export function PipelineRibbon({ stages, onSelect }: { stages: Group[]; onSelect
             onFocus={() => setHot(i)}
             onBlur={() => setHot(null)}
             onClick={() => onSelect(stage.key)}
-            aria-label={`${FLOW_STAGES[i].label} : ${stage.count} affaires, ${fcfa(stage.amount)}`}
+            aria-label={`${FLOW[i].label} : ${stage.count} ${noun}s, ${fcfa(stage.amount)}`}
           >
-            <span className="stage-code">{FLOW_STAGES[i].code}</span>
-            <span className="name">{FLOW_STAGES[i].short}</span>
+            <span className="stage-code">{FLOW[i].code}</span>
+            <span className="name">{FLOW[i].short}</span>
             <span className="amt num">{stage.amount ? compact(stage.amount) : "Non chiffré"}</span>
             <span className="cnt">
-              {stage.count} affaire{stage.count > 1 ? "s" : ""}
+              {stage.count} {noun}
+              {stage.count > 1 ? "s" : ""}
             </span>
           </button>
         ))}

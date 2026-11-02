@@ -1,26 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useEffect, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { api, useApi } from "../lib/api";
 import { initials } from "../lib/format";
-import type { Me, Summary } from "../lib/types";
-import {
-  IconAccounts,
-  IconActions,
-  IconActivity,
-  IconContacts,
-  IconDeals,
-  IconLogout,
-  IconMenu,
-  IconOverview,
-  IconRenewals,
-  IconSearch,
-  IconSettings,
-  IconSolutions,
-  IconTenders,
-} from "./icons";
-import { IatMark } from "./Logo";
+import { equivalentPath, SPACE_LIST, type SpaceCode, useSpace } from "../lib/space";
+import type { Me } from "../lib/types";
 import { CommandPalette } from "./CommandPalette";
+import { IconCheck, IconChevron, IconLogout, IconMenu, IconSearch, IconSwitch } from "./icons";
+import { SpaceMark } from "./Logo";
+import { NAV, SUMMARY_PATH } from "./nav";
 
 export const APP_NAME = "Infinity Pipeline";
 
@@ -41,7 +29,7 @@ function Item({
   countLabel?: string;
 }) {
   return (
-    <NavLink to={to} end={to === "/"} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+    <NavLink to={to} end={to.split("/").length === 2} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
       {icon}
       {children}
       {count != null && count > 0 && (
@@ -55,24 +43,131 @@ function Item({
 }
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+export const SWITCH_SHORTCUT = isMac ? "⌘⇧E" : "Ctrl ⇧ E";
+
+/** Aller dans un autre espace en restant, si possible, sur la même rubrique. */
+export function useSwitchSpace() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return (target: SpaceCode) => navigate(equivalentPath(location.pathname, target));
+}
+
+/**
+ * Marque de l'espace courant ; quand l'utilisateur a accès à plusieurs filiales, elle ouvre le menu
+ * de bascule (logo, nom et rôle de chaque espace, coche sur l'espace actif).
+ */
+function SpaceSwitcher({ me, compact = false }: { me: Me; compact?: boolean }) {
+  const space = useSpace();
+  const switchTo = useSwitchSpace();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const available = SPACE_LIST.filter((s) => me.user.spaces.includes(s.code));
+  const several = available.length > 1;
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key === "Escape" : !box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
+  const label = (
+    <>
+      <SpaceMark space={space.code} className={compact ? "logo" : undefined} />
+      <span className="brand-name">
+        {compact ? space.name : APP_NAME}
+        {!compact && <span className="brand-sub">Espace {space.name}</span>}
+      </span>
+    </>
+  );
+
+  if (!several) {
+    return (
+      <Link to={space.base} className={compact ? "brand compact" : "brand"}>
+        {label}
+      </Link>
+    );
+  }
+  return (
+    <div className={`space-switcher${compact ? " compact" : ""}`} ref={box}>
+      <button
+        type="button"
+        className={compact ? "brand compact" : "brand"}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        title={`Changer d’espace (${SWITCH_SHORTCUT})`}
+      >
+        {label}
+        <IconChevron className="brand-chev" aria-hidden />
+      </button>
+      {open && (
+        <div className="space-menu" role="menu" aria-label="Espaces">
+          <div className="space-menu-head">Espaces</div>
+          {available.map((s) => (
+            <button
+              key={s.code}
+              type="button"
+              role="menuitemradio"
+              aria-checked={s.code === space.code}
+              className={`space-option${s.code === space.code ? " current" : ""}`}
+              data-space-option={s.code}
+              onClick={() => {
+                setOpen(false);
+                if (s.code !== space.code) switchTo(s.code);
+              }}
+            >
+              <SpaceMark space={s.code} />
+              <span className="row-main">
+                <span className="row-title">{s.name}</span>
+                <span className="row-meta">{s.fullName}</span>
+              </span>
+              {s.code === space.code && <IconCheck className="space-check" />}
+            </button>
+          ))}
+          <div className="space-menu-foot">
+            <Link to="/" onClick={() => setOpen(false)}>
+              Tous les espaces
+            </Link>
+            <kbd>{SWITCH_SHORTCUT}</kbd>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Shell({ me }: { me: Me }) {
+  const space = useSpace();
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const location = useLocation();
   const client = useQueryClient();
-  const { data: summary } = useApi<Summary>("/summary");
+  const switchTo = useSwitchSpace();
+  const { data: summary } = useApi<never>(SUMMARY_PATH[space.code]);
+  const others = me.user.spaces.filter((s) => s !== space.code);
   useEffect(() => setOpen(false), [location.pathname]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      const key = event.key.toLowerCase();
+      if (key === "k") {
         event.preventDefault();
         setSearching((v) => !v);
+      } else if (key === "e" && event.shiftKey && others.length) {
+        event.preventDefault();
+        switchTo(others[0]);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [others, switchTo]);
 
   const logout = async () => {
     await api.post("/auth/logout", {});
@@ -83,50 +178,35 @@ export function Shell({ me }: { me: Me }) {
   return (
     <div className={`shell${open ? " menu-open" : ""}`}>
       <aside className="sidebar" aria-label="Navigation principale">
-        <Link to="/" className="brand">
-          <IatMark />
-          <span className="brand-name">
-            {APP_NAME}
-            <span className="brand-sub">Infinity Africa Technologies</span>
-          </span>
-        </Link>
+        <SpaceSwitcher me={me} />
         <button type="button" className="search-trigger" onClick={() => setSearching(true)}>
           <IconSearch />
           <span>Rechercher</span>
           <kbd>{isMac ? "⌘K" : "Ctrl K"}</kbd>
         </button>
-        <Item to="/" icon={<IconOverview />}>
-          Vue d’ensemble
-        </Item>
-        <Item to="/affaires" icon={<IconDeals />} count={summary?.pipeline.deals_count} countLabel="affaires">
-          Affaires
-        </Item>
-        <Item to="/actions" icon={<IconActions />} count={summary?.pipeline.overdue_actions_count} alert countLabel="en retard">
-          Plan d’actions
-        </Item>
-        <Item to="/renouvellements" icon={<IconRenewals />} count={summary?.billing.expired_count} alert countLabel="contrats échus">
-          Renouvellements
-        </Item>
-        <div className="nav-group">Portefeuille</div>
-        <Item to="/comptes" icon={<IconAccounts />}>
-          Comptes
-        </Item>
-        <Item to="/solutions" icon={<IconSolutions />}>
-          Solutions et prospects
-        </Item>
-        <Item to="/appels-offres" icon={<IconTenders />}>
-          Appels d’offres
-        </Item>
-        <Item to="/contacts" icon={<IconContacts />} count={summary?.contacts.total} countLabel="contacts">
-          Contacts
-        </Item>
-        <div className="nav-group">Suivi</div>
-        <Item to="/journal" icon={<IconActivity />}>
-          Journal
-        </Item>
-        <Item to="/reglages" icon={<IconSettings />}>
-          Réglages
-        </Item>
+        {NAV[space.code].map((entry) => (
+          <div key={entry.to} style={{ display: "contents" }}>
+            {entry.group && <div className="nav-group">{entry.group}</div>}
+            <Item
+              to={entry.to}
+              icon={entry.icon}
+              count={summary && entry.count ? entry.count(summary) : undefined}
+              alert={entry.alert}
+              countLabel={entry.countLabel}
+            >
+              {entry.label}
+            </Item>
+          </div>
+        ))}
+        {others.length > 0 && (
+          <button type="button" className="space-jump" onClick={() => switchTo(others[0])}>
+            <IconSwitch />
+            <span>
+              Passer à l’espace {others[0].toUpperCase()}
+              <small>{SWITCH_SHORTCUT}</small>
+            </span>
+          </button>
+        )}
         <div className="sidebar-foot">
           <span className="avatar">{initials(me.user.name)}</span>
           <span className="who">
@@ -144,8 +224,7 @@ export function Shell({ me }: { me: Me }) {
           <button type="button" className="btn btn-plain icon-btn" onClick={() => setOpen(true)} aria-label="Ouvrir le menu">
             <IconMenu />
           </button>
-          <IatMark className="logo" />
-          {APP_NAME}
+          <SpaceSwitcher me={me} compact />
           <button type="button" className="btn btn-plain icon-btn" style={{ marginLeft: "auto" }} onClick={() => setSearching(true)} aria-label="Rechercher">
             <IconSearch />
           </button>
@@ -154,7 +233,7 @@ export function Shell({ me }: { me: Me }) {
           <Outlet />
         </main>
       </div>
-      <CommandPalette open={searching} onClose={() => setSearching(false)} />
+      <CommandPalette open={searching} onClose={() => setSearching(false)} spaces={me.user.spaces} />
     </div>
   );
 }

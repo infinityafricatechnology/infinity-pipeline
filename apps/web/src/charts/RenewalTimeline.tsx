@@ -11,7 +11,7 @@ const AXIS_H = 46;
 const TONE_COLOR: Record<Tone, string> = {
   bad: "var(--red)",
   warn: "var(--amber)",
-  info: "var(--blue)",
+  info: "var(--accent)",
   good: "var(--green)",
   none: "var(--neutral-mark)",
 };

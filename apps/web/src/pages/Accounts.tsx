@@ -61,7 +61,7 @@ export function Accounts() {
                 {pagedFollowed.items.map((a) => {
                   const st = stats.get(a.id);
                   return (
-                    <tr key={a.id} onClick={() => navigate(`/comptes/${a.slug}`)}>
+                    <tr key={a.id} onClick={() => navigate(`/iat/comptes/${a.slug}`)}>
                       <td className="cell-title">
                         {a.name}
                         <span className="cell-sub">{a.sector ?? KINDS.find((k) => k.value === a.kind)?.label}</span>
@@ -107,7 +107,7 @@ export function Accounts() {
             </thead>
             <tbody>
               {pagedOthers.items.map((a) => (
-                <tr key={a.id} onClick={() => navigate(`/comptes/${a.slug}`)}>
+                <tr key={a.id} onClick={() => navigate(`/iat/comptes/${a.slug}`)}>
                   <td className="cell-title">{a.name}</td>
                   <td className="muted">{KINDS.find((k) => k.value === a.kind)?.label}</td>
                   <td className="right num">{a.deals_count}</td>

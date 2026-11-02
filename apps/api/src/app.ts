@@ -5,13 +5,17 @@ import { resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
-import { type AppEnv, authenticate } from "./auth.ts";
+import { type AppEnv, authenticate, requireSpaces } from "./auth.ts";
 import { ApiError } from "./resource.ts";
 import { APP_NAME, authRoutes, registerAccountRoutes } from "./routes/account.ts";
+import { registerIap } from "./routes/iap.ts";
 import { registerInsights } from "./routes/insights.ts";
 import { registerResources } from "./routes/resources.ts";
 
-const API_DESCRIPTION = `API publique d'${APP_NAME}, le pipeline commercial d'IAT (Infinity Africa Technologies).
+const API_DESCRIPTION = `API publique d'${APP_NAME}, le pipeline commercial des filiales d'Infinity Africa :
+- IAT (Infinity Africa Technologies) : routes sans préfixe (\`/deals\`, \`/accounts\`, \`/summary\`…) ;
+- IAP (Infinity Africa Properties, immobilier) : routes \`/iap/…\` (affaires, commissions, actions, contacts).
+Chaque compte n'accède qu'à ses filiales (\`GET /me\` → \`user.spaces\`), sinon 403.
 
 Authentification : \`Authorization: Bearer <jeton>\`. Les jetons se créent dans l'application, Réglages > Connecter Claude ;
 les modifications faites avec un jeton « Claude » apparaissent « via Claude » dans le journal d'activité.
@@ -56,9 +60,11 @@ export function createApp(db: DatabaseSync, options: { webDist?: string } = {}) 
   });
   api.openAPIRegistry.registerComponent("securitySchemes", "bearer", { type: "http", scheme: "bearer" });
   api.use("*", authenticate());
+  api.use("*", requireSpaces());
   registerAccountRoutes(api);
   registerInsights(api);
   registerResources(api);
+  registerIap(api);
 
   api.onError((error, c) => {
     if (error instanceof ApiError) return c.json({ error: error.message }, error.status);

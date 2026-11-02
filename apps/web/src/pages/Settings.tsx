@@ -87,7 +87,7 @@ function ConnectClaude() {
     <section className="panel" aria-labelledby="claude">
       <div className="settings-block">
         <h2 className="t-headline" id="claude" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconSpark width={18} style={{ color: "var(--blue)" }} />
+          <IconSpark width={18} style={{ color: "var(--accent)" }} />
           Connecter Claude
         </h2>
         <p>
@@ -244,11 +244,48 @@ function Password() {
   );
 }
 
-function Users() {
-  const { data } = useApi<{ results: { id: number; email: string; name: string; role: string }[] }>("/users");
+type SpaceCode = "iat" | "iap";
+const SPACE_NAMES: Record<SpaceCode, string> = { iat: "IAT", iap: "IAP" };
+
+/** Espaces accessibles d'un membre ; un administrateur a toujours accès à tous. */
+function SpaceToggles({ user }: { user: { id: number; role: string; spaces: SpaceCode[] } }) {
   const save = useSave();
   const toast = useToast();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "member" });
+  if (user.role === "admin") return <span className="t-caption">IAT et IAP (administrateur)</span>;
+  const toggle = (code: SpaceCode) => {
+    const next = user.spaces.includes(code) ? user.spaces.filter((s) => s !== code) : [...user.spaces, code];
+    if (!next.length) {
+      toast("Un utilisateur doit garder au moins un espace.", true);
+      return;
+    }
+    save.mutate(
+      { method: "patch", path: `/users/${user.id}`, body: { spaces: next } },
+      { onSuccess: () => toast("Accès mis à jour"), onError: (error) => toast(error.message, true) },
+    );
+  };
+  return (
+    <span className="space-toggles" role="group" aria-label="Espaces accessibles">
+      {(["iat", "iap"] as const).map((code) => (
+        <label key={code} className={`space-toggle ${code}${user.spaces.includes(code) ? " on" : ""}`}>
+          <input type="checkbox" checked={user.spaces.includes(code)} onChange={() => toggle(code)} disabled={save.isPending} />
+          {SPACE_NAMES[code]}
+        </label>
+      ))}
+    </span>
+  );
+}
+
+function Users() {
+  const { data } = useApi<{ results: { id: number; email: string; name: string; role: string; spaces: SpaceCode[] }[] }>("/users");
+  const save = useSave();
+  const toast = useToast();
+  const [form, setForm] = useState<{ name: string; email: string; password: string; role: string; spaces: SpaceCode[] }>({
+    name: "",
+    email: "",
+    password: "",
+    role: "member",
+    spaces: ["iat"],
+  });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     save.mutate(
@@ -256,7 +293,7 @@ function Users() {
       {
         onSuccess: () => {
           toast(`Compte créé pour ${form.name}`);
-          setForm({ name: "", email: "", password: "", role: "member" });
+          setForm({ name: "", email: "", password: "", role: "member", spaces: ["iat"] });
         },
         onError: (error) => toast(error.message, true),
       },
@@ -268,6 +305,9 @@ function Users() {
         <h2 className="t-headline" id="users">
           Utilisateurs
         </h2>
+        <p className="t-caption" style={{ margin: "4px 0 0" }}>
+          Cochez les espaces auxquels chaque membre a accès. Un membre qui n’a qu’un espace y arrive directement après sa connexion.
+        </p>
         <div className="group" style={{ marginTop: 12, boxShadow: "none", border: "1px solid var(--hairline)" }}>
           {data?.results.map((u) => (
             <div key={u.id} className="row flush" style={{ cursor: "default" }}>
@@ -275,7 +315,10 @@ function Users() {
                 <span className="row-title">{u.name}</span>
                 <span className="row-meta">{u.email}</span>
               </span>
-              <span className="row-aside">{u.role === "admin" ? "Administrateur" : "Membre"}</span>
+              <span className="row-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <SpaceToggles user={u} />
+                <span style={{ minWidth: 92, textAlign: "right" }}>{u.role === "admin" ? "Administrateur" : "Membre"}</span>
+              </span>
             </div>
           ))}
         </div>
@@ -304,6 +347,26 @@ function Users() {
               <option value="admin">Administrateur</option>
             </select>
           </div>
+          {form.role !== "admin" && (
+            <div className="field">
+              <span className="label">Espaces</span>
+              <span className="space-toggles">
+                {(["iat", "iap"] as const).map((code) => (
+                  <label key={code} className={`space-toggle ${code}${form.spaces.includes(code) ? " on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={form.spaces.includes(code)}
+                      onChange={() => {
+                        const next = form.spaces.includes(code) ? form.spaces.filter((s) => s !== code) : [...form.spaces, code];
+                        if (next.length) setForm({ ...form, spaces: next });
+                      }}
+                    />
+                    {SPACE_NAMES[code]}
+                  </label>
+                ))}
+              </span>
+            </div>
+          )}
         </div>
         <button className="btn" style={{ marginTop: 14 }} disabled={save.isPending}>
           Créer le compte

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { type AppEnv, createSession, createToken, endSession, hashPassword, requireAdmin, requireSession, verifyPassword } from "../auth.ts";
 import { all, one } from "../db.ts";
 import { today } from "../domain.ts";
+import { parseSpaces, SPACE_CODES, SPACES, userSpaces } from "../spaces.ts";
 
 const json = <S extends z.ZodType>(schema: S, description: string) => ({
   content: { "application/json": { schema } },
@@ -11,7 +12,13 @@ const json = <S extends z.ZodType>(schema: S, description: string) => ({
 
 const Me = z
   .object({
-    user: z.object({ id: z.number(), email: z.string(), name: z.string(), role: z.string() }),
+    user: z.object({
+      id: z.number(),
+      email: z.string(),
+      name: z.string(),
+      role: z.string(),
+      spaces: z.array(z.enum(SPACE_CODES)).openapi({ description: "Filiales accessibles : iat (Infinity Africa Technologies), iap (Infinity Africa Properties)" }),
+    }),
     via: z.enum(["web", "api", "claude"]),
     today: z.string(),
     app_url: z.string().nullable(),
@@ -48,8 +55,9 @@ export function registerAccountRoutes(app: OpenAPIHono<AppEnv>) {
       path: "/me",
       tags: ["Session"],
       operationId: "whoami",
-      summary: "Personne connectée et date du jour",
-      description: "À appeler avant de travailler avec des dates relatives (« cette semaine », « en retard »).",
+      summary: "Personne connectée, filiales accessibles et date du jour",
+      description:
+        "À appeler avant de travailler avec des dates relatives (« cette semaine », « en retard »). `user.spaces` liste les filiales accessibles : les routes `/iap/…` concernent IAP, les autres IAT.",
       responses: { 200: json(Me, "Personne connectée") },
     }),
     (c) => c.json({ user: c.var.actor.user, via: c.var.actor.via, today: today(), app_url: process.env.PUBLIC_URL ?? null }, 200),
@@ -86,7 +94,25 @@ export function registerAccountRoutes(app: OpenAPIHono<AppEnv>) {
   });
 
   // Utilisateurs : liste pour tous, création réservée aux administrateurs (via l'interface).
-  app.get("/users", (c) => c.json({ results: all(c.var.db, "SELECT id, email, name, role, created_at FROM users ORDER BY name") }));
+  app.get("/spaces", (c) => c.json({ results: SPACES }));
+  app.get("/users", (c) =>
+    c.json({
+      results: all<{ role: string; spaces: string | null }>(c.var.db, "SELECT id, email, name, role, spaces, created_at FROM users ORDER BY name").map((u) => ({
+        ...u,
+        spaces: userSpaces(u.role, u.spaces),
+      })),
+    }),
+  );
+  app.patch("/users/:id", async (c) => {
+    const denied = requireSession(c) ?? requireAdmin(c);
+    if (denied) return denied;
+    const body = await c.req.json().catch(() => ({}));
+    const spaces = parseSpaces(body.spaces);
+    if (!spaces.length) return c.json({ error: `Au moins un espace requis parmi : ${SPACE_CODES.join(", ")}.` }, 400);
+    const result = c.var.db.prepare("UPDATE users SET spaces = ? WHERE id = ?").run(spaces.join(","), Number(c.req.param("id")));
+    if (!result.changes) return c.json({ error: "Utilisateur introuvable." }, 404);
+    return c.json({ ok: true, spaces });
+  });
   app.post("/users", async (c) => {
     const denied = requireSession(c) ?? requireAdmin(c);
     if (denied) return denied;
@@ -99,8 +125,8 @@ export function registerAccountRoutes(app: OpenAPIHono<AppEnv>) {
     }
     try {
       const result = c.var.db
-        .prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, ?, ?)")
-        .run(email, name, hashPassword(password), body.role === "admin" ? "admin" : "member");
+        .prepare("INSERT INTO users (email, name, password_hash, role, spaces) VALUES (?, ?, ?, ?, ?)")
+        .run(email, name, hashPassword(password), body.role === "admin" ? "admin" : "member", (parseSpaces(body.spaces).join(",") || "iat"));
       return c.json({ id: Number(result.lastInsertRowid), email, name }, 201);
     } catch {
       return c.json({ error: `Un utilisateur existe déjà avec l'adresse ${email}.` }, 409);

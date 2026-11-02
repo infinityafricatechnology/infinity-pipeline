@@ -3,8 +3,11 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Context, MiddlewareHandler } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { one } from "./db.ts";
+import { type Space, userSpaces } from "./spaces.ts";
 
-export type User = { id: number; email: string; name: string; role: "admin" | "member" };
+export type User = { id: number; email: string; name: string; role: "admin" | "member"; spaces: Space[] };
+type UserRow = Omit<User, "spaces"> & { spaces: string | null };
+const withSpaces = ({ spaces, ...user }: UserRow): User => ({ ...user, spaces: userSpaces(user.role, spaces) });
 /** Canal d'une modification : interface web, API avec un jeton, ou Claude (jeton du connecteur MCP). */
 export type Via = "web" | "api" | "claude";
 export type Actor = { user: User; via: Via; tokenId: number | null };
@@ -61,9 +64,9 @@ export function createToken(db: DatabaseSync, userId: number, name: string, kind
 }
 
 function userFromToken(db: DatabaseSync, token: string): Actor | null {
-  const row = one<User & { token_id: number; kind: "claude" | "api"; expires_at: string | null }>(
+  const row = one<UserRow & { token_id: number; kind: "claude" | "api"; expires_at: string | null }>(
     db,
-    `SELECT u.id, u.email, u.name, u.role, t.id AS token_id, t.kind, t.expires_at
+    `SELECT u.id, u.email, u.name, u.role, u.spaces, t.id AS token_id, t.kind, t.expires_at
        FROM api_tokens t JOIN users u ON u.id = t.user_id
       WHERE t.token_hash = :hash AND t.revoked_at IS NULL`,
     { hash: sha256(token) },
@@ -71,19 +74,19 @@ function userFromToken(db: DatabaseSync, token: string): Actor | null {
   if (!row || (row.expires_at && row.expires_at < new Date().toISOString())) return null;
   db.prepare("UPDATE api_tokens SET last_used_at = datetime('now') WHERE id = ?").run(row.token_id);
   const { token_id, kind, expires_at: _, ...user } = row;
-  return { user, via: kind === "claude" ? "claude" : "api", tokenId: token_id };
+  return { user: withSpaces(user), via: kind === "claude" ? "claude" : "api", tokenId: token_id };
 }
 
 function userFromSession(db: DatabaseSync, c: Context): Actor | null {
   const id = getCookie(c, SESSION_COOKIE);
   if (!id) return null;
-  const user = one<User>(
+  const user = one<UserRow>(
     db,
-    `SELECT u.id, u.email, u.name, u.role FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.id, u.email, u.name, u.role, u.spaces FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id_hash = :hash AND s.expires_at > :now`,
     { hash: sha256(id), now: new Date().toISOString() },
   );
-  return user ? { user, via: "web", tokenId: null } : null;
+  return user ? { user: withSpaces(user), via: "web", tokenId: null } : null;
 }
 
 // Limite de débit par jeton : 300 requêtes par minute, comme pour le connecteur d'Infinity Planning.
@@ -144,4 +147,25 @@ export function requireSession(c: Context<AppEnv>): Response | null {
   return c.var.actor.via === "web"
     ? null
     : c.json({ error: "Les jetons se gèrent depuis l'application, pas avec un jeton." }, 403);
+}
+
+/** Routes communes à toutes les filiales (session, jetons, utilisateurs, journal, documentation). */
+const SHARED_PATHS = [/^\/me(\/|$)/, /^\/tokens(\/|$)/, /^\/users(\/|$)/, /^\/activity$/, /^\/spaces$/, /^\/openapi\.json$/];
+
+/**
+ * Cloisonne les filiales : `/iap/…` exige l'espace IAP, les routes métier historiques l'espace IAT.
+ * Le chemin est relatif à `/api/v1`.
+ */
+export function requireSpaces(): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    const path = c.req.path.replace(/^.*\/api\/v1/, "") || "/";
+    if (!SHARED_PATHS.some((re) => re.test(path))) {
+      const space: Space = path === "/iap" || path.startsWith("/iap/") ? "iap" : "iat";
+      if (!c.var.actor.user.spaces.includes(space)) {
+        const name = space === "iap" ? "IAP (Infinity Africa Properties)" : "IAT (Infinity Africa Technologies)";
+        return c.json({ error: `Accès à l'espace ${name} non autorisé pour ce compte. Demandez-le à un administrateur.` }, 403);
+      }
+    }
+    await next();
+  };
 }

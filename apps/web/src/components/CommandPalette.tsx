@@ -1,25 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { api, type Page } from "../lib/api";
 import { compact } from "../lib/format";
-import type { Account, Action, Contact, Deal } from "../lib/types";
-import { IconAccounts, IconActions, IconChevron, IconContacts, IconDeals, IconSearch } from "./icons";
+import { equivalentPath, SPACES, type SpaceCode, useSpace } from "../lib/space";
+import type { Account, Action, Contact, Deal, IapAction, IapContact, IapDeal } from "../lib/types";
+import { IconAccounts, IconActions, IconChevron, IconContacts, IconDeals, IconSearch, IconSwitch } from "./icons";
+import { NAV } from "./nav";
 
 type Result = { key: string; group: string; title: string; meta?: string; to: string; icon: React.ReactNode };
-
-const PAGES: { title: string; to: string; words: string }[] = [
-  { title: "Vue d’ensemble", to: "/", words: "accueil synthese tableau de bord" },
-  { title: "Affaires", to: "/affaires", words: "pipeline deals opportunites" },
-  { title: "Affaires par étape", to: "/affaires?vue=etapes", words: "kanban colonnes etapes" },
-  { title: "Plan d’actions", to: "/actions", words: "taches a faire todo" },
-  { title: "Renouvellements", to: "/renouvellements", words: "contrats echeances relances licences" },
-  { title: "Comptes", to: "/comptes", words: "clients prospects partenaires" },
-  { title: "Solutions et prospects", to: "/solutions", words: "catalogue credolab wari pitch" },
-  { title: "Appels d’offres", to: "/appels-offres", words: "ao consultation" },
-  { title: "Contacts", to: "/contacts", words: "annuaire carnet" },
-  { title: "Journal", to: "/journal", words: "historique activite modifications claude" },
-  { title: "Réglages", to: "/reglages", words: "jeton claude mot de passe utilisateurs" },
-];
 
 const norm = (text: string) =>
   text
@@ -31,7 +19,9 @@ const norm = (text: string) =>
  * Recherche globale (⌘K) : comptes, affaires, contacts, actions et pages, au clavier.
  * ↑ ↓ pour choisir, ↩ pour ouvrir, Échap pour fermer.
  */
-export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function CommandPalette({ open, onClose, spaces }: { open: boolean; onClose: () => void; spaces: SpaceCode[] }) {
+  const space = useSpace();
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [active, setActive] = useState(0);
@@ -49,14 +39,26 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   const pages = useMemo<Result[]>(() => {
     const q = norm(query.trim());
-    return PAGES.filter((p) => !q || norm(`${p.title} ${p.words}`).includes(q)).map((p) => ({
-      key: `page-${p.to}`,
-      group: "Aller à",
-      title: p.title,
-      to: p.to,
-      icon: <IconChevron />,
-    }));
-  }, [query]);
+    const pages = NAV[space.code].flatMap((p) => [{ title: p.label, to: p.to, words: p.words }, ...(p.extra ?? []).map((e) => ({ title: e.label, ...e }))]);
+    const switches: Result[] = spaces
+      .filter((code) => code !== space.code)
+      .map((code) => SPACES[code])
+      .filter((s) => !q || norm(`espace changer basculer ${s.name} ${s.fullName} ${s.tagline}`).includes(q))
+      .map((s) => ({
+        key: `space-${s.code}`,
+        group: "Espaces",
+        title: `Passer à l’espace ${s.name}`,
+        meta: s.fullName,
+        to: equivalentPath(location.pathname, s.code),
+        icon: <IconSwitch />,
+      }));
+    return [
+      ...switches,
+      ...pages
+        .filter((p) => !q || norm(`${p.title} ${p.words}`).includes(q))
+        .map((p) => ({ key: `page-${p.to}`, group: `Aller à · ${space.name}`, title: p.title, to: p.to, icon: <IconChevron /> })),
+    ];
+  }, [query, space, spaces, location.pathname]);
 
   // Recherche dans les données, après une courte pause de frappe.
   useEffect(() => {
@@ -68,6 +70,42 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       const enc = encodeURIComponent(q);
+      if (space.code === "iap") {
+        const [deals, contacts, actions] = await Promise.all([
+          api.get<Page<IapDeal>>(`/iap/deals?q=${enc}&limit=8`).catch(() => null),
+          api.get<Page<IapContact>>(`/iap/contacts?q=${enc}&limit=6`).catch(() => null),
+          api.get<Page<IapAction>>(`/iap/actions?q=${enc}&limit=5&open=true`).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setResults([
+          ...(deals?.results ?? []).map((d) => ({
+            key: `d${d.id}`,
+            group: "Affaires IAP",
+            title: `${d.number}. ${d.title}`,
+            meta: [d.apporteur, d.stage_label, d.amount ? compact(d.amount) : null].filter(Boolean).join(" · "),
+            to: `/iap/affaires?affaire=${d.number}`,
+            icon: <IconDeals />,
+          })),
+          ...(contacts?.results ?? []).map((c) => ({
+            key: `c${c.id}`,
+            group: "Contacts IAP",
+            title: c.name,
+            meta: [c.role, c.company].filter(Boolean).join(" · "),
+            to: `/iap/contacts?contact=${c.id}`,
+            icon: <IconContacts />,
+          })),
+          ...(actions?.results ?? []).map((a) => ({
+            key: `t${a.id}`,
+            group: "Actions IAP",
+            title: a.title,
+            meta: [a.deal_title, a.due_date ? `échéance ${a.due_date.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · "),
+            to: `/iap/actions?action=${a.number}`,
+            icon: <IconActions />,
+          })),
+        ]);
+        setActive(0);
+        return;
+      }
       const [accounts, deals, contacts, actions] = await Promise.all([
         api.get<Page<Account>>(`/accounts?q=${enc}&limit=5`).catch(() => null),
         api.get<Page<Deal>>(`/deals?q=${enc}&limit=6`).catch(() => null),
@@ -81,7 +119,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           group: "Comptes",
           title: a.name,
           meta: [a.sector, a.open_amount ? `${compact(a.open_amount)} en cours` : null].filter(Boolean).join(" · "),
-          to: `/comptes/${a.slug}`,
+          to: `/iat/comptes/${a.slug}`,
           icon: <IconAccounts />,
         })),
         ...(deals?.results ?? []).map((d) => ({
@@ -89,7 +127,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           group: "Affaires",
           title: `${d.number}. ${d.title}`,
           meta: [d.account_name, d.stage_label, d.amount ? compact(d.amount) : null].filter(Boolean).join(" · "),
-          to: `/affaires?affaire=${d.number}`,
+          to: `/iat/affaires?affaire=${d.number}`,
           icon: <IconDeals />,
         })),
         ...(contacts?.results ?? []).map((c) => ({
@@ -97,7 +135,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           group: "Contacts",
           title: c.name,
           meta: [c.role, c.company].filter(Boolean).join(" · "),
-          to: `/contacts?contact=${c.id}`,
+          to: `/iat/contacts?contact=${c.id}`,
           icon: <IconContacts />,
         })),
         ...(actions?.results ?? []).map((a) => ({
@@ -105,7 +143,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           group: "Actions",
           title: a.title,
           meta: [a.related_to, a.due_date ? `échéance ${a.due_date.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · "),
-          to: `/actions?action=${a.number}`,
+          to: `/iat/actions?action=${a.number}`,
           icon: <IconActions />,
         })),
       ]);
@@ -115,9 +153,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, space.code]);
 
-  const items = query.trim().length >= 2 ? [...results, ...pages.slice(0, 3)] : pages;
+  const items = query.trim().length >= 2 ? [...results, ...pages.slice(0, 4)] : pages;
 
   const go = (item: Result | undefined) => {
     if (!item) return;
@@ -136,7 +174,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           <input
             ref={input}
             value={query}
-            placeholder="Rechercher un compte, une affaire, un contact, une action…"
+            placeholder={space.code === "iap" ? "Rechercher un bien, un commercial, un contact, une action…" : "Rechercher un compte, une affaire, un contact, une action…"}
             aria-label="Rechercher"
             role="combobox"
             aria-expanded="true"

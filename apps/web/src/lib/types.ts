@@ -290,4 +290,145 @@ export type Summary = {
 
 export type Agenda = { as_of: string; horizon: string; actions: Action[]; renewals: Renewal[]; deals: Deal[] };
 
-export type Me = { user: { id: number; email: string; name: string; role: string }; via: string; today: string };
+export type Me = {
+  user: { id: number; email: string; name: string; role: string; spaces: ("iat" | "iap")[] };
+  via: string;
+  today: string;
+};
+
+/* ---------- IAP (Infinity Africa Properties) ---------- */
+
+export type IapStageCode = "P0" | "P1" | "P2" | "P3" | "P4" | "P5" | "LOST";
+
+export const IAP_STAGES: { code: IapStageCode; label: string; short: string }[] = [
+  { code: "P0", label: "Mandat à signer", short: "Mandat à signer" },
+  { code: "P1", label: "Mandat signé", short: "Mandat signé" },
+  { code: "P2", label: "Présenté / visites", short: "Visites" },
+  { code: "P3", label: "Offre / négociation", short: "Négociation" },
+  { code: "P4", label: "Acompte / compromis", short: "Acompte" },
+  { code: "P5", label: "Conclu", short: "Conclu" },
+  { code: "LOST", label: "Perdu", short: "Perdu" },
+];
+export const IAP_FLOW_STAGES = IAP_STAGES.slice(0, 6);
+
+export const IAP_NATURES = ["Vente bien immobilier", "Vente de terrain", "Mandat de recherche", "Mandat de gestion", "Location", "Construction"];
+export const IAP_PEOPLE = ["Koumba Assanvo", "Serges Gnonblesson", "Sali Traoré", "Landry Digbeu"];
+export const IAP_CONTACT_ROLES = ["Acquéreur", "Locataire", "Propriétaire", "Agence partenaire", "Apporteur d'affaires", "Autre"];
+/** Fiche de commissionnement IAP, effet au 14 septembre 2026. */
+export const COMMISSION_POLICY = { apport: 0.05, closing: 0.1, combined: 0.15, effectiveFrom: "2026-09-14" };
+
+export type CommissionShare = {
+  person: string;
+  role: "apport" | "closing" | "apport_closing";
+  rate: number;
+  amount: number;
+  paid: boolean;
+  paid_at: string | null;
+  status: "paid" | "due" | "expected";
+};
+
+export type IapDeal = {
+  id: number;
+  number: number;
+  title: string;
+  nature: string | null;
+  apporteur: string | null;
+  closeur: string | null;
+  client: string | null;
+  owner: string | null;
+  partner: string | null;
+  stage: IapStageCode;
+  stage_label: string | null;
+  closing: number | null;
+  amount: number | null;
+  commission_rate: number | null;
+  commission: number | null;
+  weighted_amount: number | null;
+  weighted_commission: number | null;
+  due_date: string | null;
+  days_to_due: number | null;
+  overdue: boolean;
+  is_open: boolean;
+  next_step: string | null;
+  comments: string | null;
+  commission_received: number | null;
+  received_at: string | null;
+  apport_paid_at: string | null;
+  closing_paid_at: string | null;
+  commission_base: number | null;
+  commission_estimated: boolean;
+  shares: CommissionShare[];
+};
+
+export type IapAction = {
+  id: number;
+  number: number;
+  title: string;
+  deal_id: number | null;
+  deal_number: number | null;
+  deal_title: string | null;
+  owner: string | null;
+  due_date: string | null;
+  priority: string | null;
+  status: string;
+  comments: string | null;
+  done: boolean;
+  overdue: boolean;
+  days_to_due: number | null;
+};
+
+export type IapContact = {
+  id: number;
+  name: string;
+  role: string | null;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+};
+
+type IapTotals = { count: number; amount: number; weighted_amount: number; commission: number; weighted_commission: number };
+
+export type IapSummary = {
+  as_of: string;
+  pipeline: {
+    deals_count: number;
+    open_count: number;
+    total_amount: number;
+    open_amount: number;
+    weighted_amount: number;
+    commission: number;
+    open_commission: number;
+    weighted_commission: number;
+    won_count: number;
+    won_amount: number;
+    commission_received: number;
+    mandates_signed_count: number;
+    to_sign_count: number;
+    open_actions_count: number;
+    overdue_actions_count: number;
+  };
+  commissions: { due: number; paid: number; expected: number };
+  by_stage: ({ key: IapStageCode; label: string; short: string } & IapTotals)[];
+  by_person: ({ key: string; all_count: number } & IapTotals)[];
+  contacts_count: number;
+};
+
+export type IapAgenda = { as_of: string; horizon: string; actions: IapAction[]; deals: IapDeal[] };
+
+type ShareTotals = { apport: number; closing: number; combined: number; total: number; paid: number; due: number; expected: number };
+
+export type IapCommissions = {
+  policy: { effective_from: string; apport_rate: number; closing_rate: number; combined_rate: number };
+  people: ({ person: string; deals_count: number } & ShareTotals)[];
+  totals: ShareTotals;
+  results: (CommissionShare & {
+    deal_id: number;
+    deal_number: number;
+    deal_title: string;
+    stage: IapStageCode;
+    stage_label: string;
+    base: number | null;
+    estimated: boolean;
+  })[];
+};

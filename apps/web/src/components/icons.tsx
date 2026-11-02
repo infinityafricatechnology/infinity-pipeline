@@ -181,3 +181,26 @@ export const MarkNone = (p: P) => (
     <circle cx="8" cy="8" r="6.3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeDasharray="2.4 2.2" />
   </svg>
 );
+/** Commissions : pièce et flèche de partage. */
+export const IconCommission = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="8" cy="10" r="5" />
+    <path d="M8 7.6v4.8M6.6 8.8c0-.7.6-1.2 1.4-1.2s1.4.5 1.4 1.1M9.4 11.2c0 .7-.6 1.2-1.4 1.2s-1.4-.5-1.4-1.2" />
+    <path d="M14 6.5h3.5M15.8 4.7l1.7 1.8-1.7 1.8M14 13.5h3.5M15.8 11.7l1.7 1.8-1.7 1.8" />
+  </svg>
+);
+/** Bien immobilier. */
+export const IconHome = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3.5 9.2 10 3.8l6.5 5.4" />
+    <path d="M5.2 8v8.2h9.6V8" />
+    <path d="M8.4 16.2v-4.4h3.2v4.4" />
+  </svg>
+);
+/** Changer d'espace : deux flèches opposées. */
+export const IconSwitch = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M6.5 4.5 4 7l2.5 2.5M4 7h11" />
+    <path d="M13.5 10.5 16 13l-2.5 2.5M16 13H5" />
+  </svg>
+);

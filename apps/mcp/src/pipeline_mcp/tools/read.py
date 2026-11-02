@@ -61,7 +61,7 @@ def register_read_tools(mcp: FastMCP, deps: Deps) -> None:
                     "invoiced_by_year": a["invoiced_by_year"],
                     "outstanding": a["outstanding"],
                     "open_offers": a["open_offers"],
-                    "url": f"{settings.web_url}/comptes/{a['slug']}",
+                    "url": f"{settings.web_url}/iat/comptes/{a['slug']}",
                 }
                 for a in summary["accounts"]
             ],

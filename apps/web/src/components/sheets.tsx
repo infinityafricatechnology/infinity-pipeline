@@ -68,7 +68,7 @@ export function DealSheet({ deal, defaults, onClose }: { deal: Deal | null; defa
       caption={
         deal ? (
           <>
-            Affaire n° {deal.number} · <Link to={`/comptes/${deal.account_slug}`}>{deal.account_name}</Link>
+            Affaire n° {deal.number} · <Link to={`/iat/comptes/${deal.account_slug}`}>{deal.account_name}</Link>
           </>
         ) : (
           "Pipeline"

@@ -23,11 +23,16 @@ function migrate(db: DatabaseSync) {
     ["users", "password_changed_at"],
     ["accounts", "billing_details"],
     ["invoices", "invoice_number"],
+    // Espaces (filiales) autorisés, séparés par des virgules ; vide = IAT seulement, un admin a accès à tout.
+    ["users", "spaces"],
+    // Filiale concernée par l'événement ; vide = IAT (événements antérieurs à l'espace IAP).
+    ["activity", "space"],
   ];
   for (const [table, column] of added) {
     const columns = (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
     if (!columns.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`);
   }
+  db.exec("CREATE INDEX IF NOT EXISTS activity_space ON activity(space)");
 }
 
 export function all<T = Row>(db: DatabaseSync, sql: string, params: Params = {}): T[] {

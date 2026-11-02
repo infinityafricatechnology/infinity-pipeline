@@ -251,3 +251,58 @@ CREATE INDEX IF NOT EXISTS renewals_account ON renewals(account_id);
 CREATE INDEX IF NOT EXISTS contacts_account ON contacts(account_id);
 CREATE INDEX IF NOT EXISTS prospects_solution ON prospects(solution_id);
 CREATE INDEX IF NOT EXISTS activity_entity ON activity(entity, entity_id);
+
+-- ---------- IAP (Infinity Africa Properties) : agence immobilière, données séparées d'IAT ----------
+
+CREATE TABLE IF NOT EXISTS iap_deals (
+  id INTEGER PRIMARY KEY,
+  number INTEGER NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  nature TEXT,
+  apporteur TEXT,
+  closeur TEXT,
+  client TEXT,
+  owner TEXT,
+  partner TEXT,
+  stage TEXT NOT NULL DEFAULT 'P0',
+  closing REAL CHECK (closing BETWEEN 0 AND 1),
+  amount INTEGER,
+  commission_rate REAL CHECK (commission_rate BETWEEN 0 AND 1),
+  due_date TEXT,
+  next_step TEXT,
+  comments TEXT,
+  commission_received INTEGER,
+  received_at TEXT,
+  apport_paid_at TEXT,
+  closing_paid_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS iap_contacts (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT,
+  company TEXT,
+  phone TEXT,
+  email TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS iap_actions (
+  id INTEGER PRIMARY KEY,
+  number INTEGER NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  deal_id INTEGER REFERENCES iap_deals(id) ON DELETE SET NULL,
+  owner TEXT,
+  due_date TEXT,
+  priority TEXT CHECK (priority IN ('P1', 'P2', 'P3')),
+  status TEXT NOT NULL DEFAULT 'À faire',
+  comments TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS iap_actions_deal ON iap_actions(deal_id);

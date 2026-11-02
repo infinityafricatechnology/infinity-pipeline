@@ -80,7 +80,7 @@ export function AccountDetail() {
 
   return (
     <div className="page">
-      <Link to="/comptes" className="btn btn-plain" style={{ marginLeft: -8, marginBottom: 8 }}>
+      <Link to="/iat/comptes" className="btn btn-plain" style={{ marginLeft: -8, marginBottom: 8 }}>
         <IconBack />
         Comptes
       </Link>

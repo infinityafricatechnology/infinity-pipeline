@@ -15,14 +15,33 @@ export function Amount({ value, className = "" }: { value: number | null | undef
 
 /* ---------- Étape : jauge de sept segments ---------- */
 
-export function Stage({ code, withLabel = true }: { code: string | null; withLabel?: boolean }) {
-  const index = STAGES.findIndex((s) => s.code === code);
-  const stage = STAGES[index];
+type StageDef = { code: string; label: string; short: string };
+
+/**
+ * Jauge d'avancement : un segment par étape du flux. Par défaut les étapes IAT (M0 → M6) ;
+ * IAP passe ses étapes immobilières (P0 → P5) et son étape « Conclu ».
+ */
+export function Stage({
+  code,
+  withLabel = true,
+  stages = STAGES,
+  flow = 7,
+  wonCode = "M6",
+}: {
+  code: string | null;
+  withLabel?: boolean;
+  stages?: StageDef[];
+  /** Nombre d'étapes du flux (hors perdu / clôturé). */
+  flow?: number;
+  wonCode?: string;
+}) {
+  const index = stages.findIndex((s) => s.code === code);
+  const stage = stages[index];
   const ended = code === "LOST" || code === "CLOSED";
   return (
-    <span className={`stage${code === "M6" ? " won" : ""}${ended ? " ended" : ""}`} title={stage?.label}>
+    <span className={`stage${code === wonCode ? " won" : ""}${ended ? " ended" : ""}`} title={stage?.label}>
       <span className="stage-meter" aria-hidden>
-        {Array.from({ length: 7 }, (_, i) => (
+        {Array.from({ length: flow }, (_, i) => (
           <i key={i} className={!ended && i <= index ? "on" : ""} />
         ))}
       </span>

@@ -36,7 +36,7 @@ async def test_search_deals_resolves_the_account_and_translates_filters(api, cal
         "closing": 0.6,
         "weighted_amount": 13620000,
         "due_date": "2026-10-23",
-        "url": "https://pipeline.test/affaires?affaire=8",
+        "url": "https://pipeline.test/iat/affaires?affaire=8",
     }
 
 
@@ -79,7 +79,7 @@ async def test_create_actions_attaches_the_account_in_one_batch(api, call):
             }
         ]
     }
-    assert result["created"][0]["url"] == "https://pipeline.test/actions?action=39"
+    assert result["created"][0]["url"] == "https://pipeline.test/iat/actions?action=39"
 
 
 async def test_update_deals_sends_only_the_given_fields_and_null_clears(api, call):
@@ -148,9 +148,9 @@ async def test_get_account_reads_the_overview_by_slug(api, call):
     result = await call("get_account", account="CNPS")
 
     assert route.called
-    assert result["url"] == "https://pipeline.test/comptes/cnps"
+    assert result["url"] == "https://pipeline.test/iat/comptes/cnps"
     assert result["fiche"] == {"sector": "Protection sociale"}
-    assert result["contacts"][0]["url"] == "https://pipeline.test/contacts?contact=7"
+    assert result["contacts"][0]["url"] == "https://pipeline.test/iat/contacts?contact=7"
 
 
 async def test_auth_accepts_valid_tokens_and_rejects_others():

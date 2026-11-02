@@ -9,7 +9,11 @@ import { Prio, Segmented, Sheet, useToast } from "./ui";
 export type FieldSpec = {
   name: string;
   label: string;
-  type?: "text" | "textarea" | "amount" | "int" | "date" | "select" | "percent" | "prio" | "account" | "solution";
+  /**
+   * rate : taux en % avec décimales (commission IAP 2,5 %) ; suggest : texte libre avec suggestions
+   * (commerciaux, apporteurs extérieurs) ; iapdeal : affaire IAP liée.
+   */
+  type?: "text" | "textarea" | "amount" | "int" | "date" | "select" | "percent" | "prio" | "account" | "solution" | "rate" | "suggest" | "iapdeal";
   options?: readonly string[] | { value: string; label: string }[];
   wide?: boolean;
   /** Occupe deux colonnes de la grille (sur grand écran). */
@@ -39,6 +43,17 @@ const FIELD_LABELS: Record<string, string> = {
   billing_details: "coordonnées de facturation",
   health: "état de santé",
   collected: "encaissé",
+  nature: "nature",
+  apporteur: "apporteur",
+  closeur: "closeur",
+  client: "client",
+  partner: "partenaire",
+  commission_rate: "taux de commission",
+  commission_received: "commission perçue",
+  received_at: "date d’encaissement",
+  apport_paid_at: "part apport versée",
+  closing_paid_at: "part closing versée",
+  deal_id: "affaire",
 };
 
 /** Panneau d'édition générique : création (`id` nul) ou modification, avec l'historique de l'élément. */
@@ -67,7 +82,8 @@ export function EntitySheet({
   fields: FieldSpec[];
   caption?: ReactNode;
   title: ReactNode;
-  computed?: ReactNode;
+  /** Valeurs calculées affichées au-dessus du formulaire ; une fonction reçoit la saisie en cours. */
+  computed?: ReactNode | ((draft: Values) => ReactNode);
   onClose: () => void;
   deletable?: boolean;
   /** Valeurs à ajuster quand un champ change (ex. étape « Gagné » → closing 100 %). */
@@ -179,7 +195,7 @@ export function EntitySheet({
         </>
       }
     >
-      {computed}
+      {typeof computed === "function" ? computed(draft) : computed}
       <form
         className="fields"
         onSubmit={(event) => {
@@ -256,6 +272,23 @@ function FieldInput({ spec, value, onChange }: { spec: FieldSpec; value: unknown
         ]}
       />
     );
+  } else if (type === "rate") {
+    control = <RateInput id={inputId} value={value as number | null} onChange={onChange} />;
+  } else if (type === "suggest") {
+    const listId = `${inputId}-list`;
+    control = (
+      <>
+        <input id={inputId} className="input" list={listId} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} autoComplete="off" />
+        <datalist id={listId}>
+          {(spec.options ?? []).map((o) => {
+            const opt = typeof o === "string" ? { value: o, label: o } : o;
+            return <option key={opt.value} value={opt.value} />;
+          })}
+        </datalist>
+      </>
+    );
+  } else if (type === "iapdeal") {
+    control = <IapDealSelect id={inputId} value={value as number | null} onChange={onChange} />;
   } else if (type === "account") {
     control = <AccountSelect id={inputId} value={value as number | null} onChange={onChange} />;
   } else if (type === "solution") {
@@ -294,6 +327,47 @@ function FieldInput({ spec, value, onChange }: { spec: FieldSpec; value: unknown
         {spec.hint && <span className="hint">{spec.hint}</span>}
       </div>
     </>
+  );
+}
+
+/** Taux saisi en pourcentage (« 2,5 ») et stocké entre 0 et 1 (0.025). */
+function RateInput({ id, value, onChange }: { id: string; value: number | null; onChange: (v: unknown) => void }) {
+  const shown = value == null ? "" : String(Math.round(value * 10000) / 100).replace(".", ",");
+  const [text, setText] = useState(shown);
+  useEffect(() => setText(shown), [shown]);
+  return (
+    <div className="rate-input">
+      <input
+        id={id}
+        className="input num"
+        inputMode="decimal"
+        value={text}
+        placeholder="0"
+        onChange={(e) => {
+          const raw = e.target.value.replace(/[^\d,.]/g, "");
+          setText(raw);
+          const n = Number(raw.replace(",", "."));
+          if (raw === "") onChange(null);
+          else if (!Number.isNaN(n) && n >= 0 && n <= 100) onChange(Math.round(n * 100) / 10000);
+        }}
+      />
+      <span aria-hidden>%</span>
+    </div>
+  );
+}
+
+/** Choix d'une affaire IAP (plan d'actions IAP). */
+function IapDealSelect({ id, value, onChange }: { id: string; value: number | null; onChange: (v: unknown) => void }) {
+  const { data } = useApi<Page<{ id: number; number: number; title: string }>>("/iap/deals?limit=500");
+  return (
+    <select id={id} className="select" value={value ?? ""} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}>
+      <option value="">—</option>
+      {(data?.results ?? []).map((d) => (
+        <option key={d.id} value={d.id}>
+          {d.number}. {d.title}
+        </option>
+      ))}
+    </select>
   );
 }
 

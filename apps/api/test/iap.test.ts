@@ -6,7 +6,7 @@ import { createApp } from "../src/app.ts";
 import { createToken, hashPassword } from "../src/auth.ts";
 import { openDatabase, projectRoot } from "../src/db.ts";
 import { commissionSplit } from "../src/domain-iap.ts";
-import { loadIapSeed } from "../src/cli/seed.ts";
+import { loadIapSeed, syncIapSeed } from "../src/cli/seed.ts";
 
 const base = {
   stage: "P1",
@@ -112,10 +112,45 @@ describe("API IAP", () => {
     const { db, call, admin } = setup();
     loadIapSeed(db, JSON.parse(readFileSync(resolve(projectRoot, "data/seed-iap.json"), "utf8")));
     const summary = await (await call(admin, "GET", "/iap/summary")).json();
-    assert.equal(summary.pipeline.deals_count, 40);
-    assert.equal(summary.pipeline.total_amount, 29_876_700_000);
-    assert.equal(summary.pipeline.commission, 676_364_500);
+    assert.equal(summary.pipeline.deals_count, 23);
+    assert.equal(summary.pipeline.total_amount, 22_089_700_000);
+    assert.ok(summary.pipeline.diligence_todo_count > 0);
     const actions = await (await call(admin, "GET", "/iap/actions?limit=5")).json();
     assert.ok(actions.results[0].deal_number);
+    // Liste triée par priorité : le projet Silver (priorité 1) d'abord.
+    const deals = await (await call(admin, "GET", "/iap/deals?limit=3")).json();
+    assert.deepEqual(deals.results.map((d: { priority: number }) => d.priority), [1, 1, 1]);
+    assert.equal(deals.results[0].ease, "Élevée");
+    assert.equal(deals.results[0].status_label, "Commercialisation active");
+  });
+
+  it("filtre par facilité et par due diligence à mener", async () => {
+    const { call, admin } = setup();
+    const create = (body: object) => call(admin, "POST", "/iap/deals", { title: "Bien", ...body });
+    assert.equal((await create({ ease: "Élevée", due_diligence: "Nécessaire", priority: 2 })).status, 201);
+    assert.equal((await create({ ease: "Faible", due_diligence: "Fait", market_study: "En cours", priority: 1 })).status, 201);
+    assert.equal((await create({ ease: "Moyenne", due_diligence: "N/A", market_study: "Fait" })).status, 201);
+    assert.equal((await create({ ease: "Facile" })).status, 400);
+    const get = async (q: string) => (await (await call(admin, "GET", `/iap/deals${q}`)).json()).results.map((d: { number: number }) => d.number);
+    assert.deepEqual(await get(""), [2, 1, 3]);
+    assert.deepEqual(await get("?ease=Élevée"), [1]);
+    assert.deepEqual(await get("?diligence=todo"), [2, 1]);
+  });
+
+  it("recharge un classeur IAP plus récent une seule fois, sans toucher aux contacts", () => {
+    const { db } = setup();
+    const v1 = { deals: [{ number: 1, title: "Ancienne", stage: "P0" }, { number: 2, title: "Retirée", stage: "P0" }] };
+    loadIapSeed(db, v1); // base de production remplie avant le marqueur de version
+    db.prepare("INSERT INTO iap_contacts (name) VALUES ('Mme Traoré')").run();
+    assert.equal(syncIapSeed(db, v1), "kept");
+    const v2 = { version: 2, deals: [{ number: 1, title: "Assainie", stage: "P1" }], actions: [{ number: 1, title: "Relancer", deal: 1 }] };
+    assert.equal(syncIapSeed(db, v2), "replaced");
+    const titles = () => db.prepare("SELECT title FROM iap_deals ORDER BY number").all().map((r) => r.title);
+    assert.deepEqual(titles(), ["Assainie"]);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM iap_contacts").get()!.n, 1);
+    // Modifiée ensuite dans l'application : un redémarrage ne l'écrase plus.
+    db.prepare("UPDATE iap_deals SET title = 'Modifiée'").run();
+    assert.equal(syncIapSeed(db, v2), "kept");
+    assert.deepEqual(titles(), ["Modifiée"]);
   });
 });

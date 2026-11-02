@@ -35,7 +35,10 @@ def iap_deal(settings: Settings, d: dict, *, full: bool = False) -> dict:
         "number": d["number"],
         "title": d["title"],
         "nature": d.get("nature"),
+        "priority": d.get("priority"),
         "stage": d.get("stage_label"),
+        "status": d.get("status_label"),
+        "ease": d.get("ease"),
         "amount": d.get("amount"),
         "commission_rate": d.get("commission_rate"),
         "commission": d.get("commission"),
@@ -54,6 +57,8 @@ def iap_deal(settings: Settings, d: dict, *, full: bool = False) -> dict:
             "client": d.get("client"),
             "owner": d.get("owner"),
             "partner": d.get("partner"),
+            "due_diligence": d.get("due_diligence"),
+            "market_study": d.get("market_study"),
             "comments": d.get("comments"),
             "commission_received": d.get("commission_received"),
             "received_at": d.get("received_at"),
@@ -117,6 +122,9 @@ async def _action(api: PipelineAPI, number: int) -> dict:
 
 # ---------- Modèles d'écriture ----------
 
+Ease = Literal["Élevée", "Moyenne", "Faible"]
+ReviewState = Literal["Nécessaire", "En cours", "Fait", "N/A", "À définir"]
+
 
 class NewIapDeal(BaseModel):
     title: str = Field(min_length=1, description="Bien ou projet, ex. « Villa 800m² 7ème tranche »")
@@ -135,6 +143,16 @@ class NewIapDeal(BaseModel):
     client: str | None = Field(None, description="Acquéreur ou locataire")
     owner: str | None = Field(None, description="Propriétaire du bien")
     partner: str | None = Field(None, description="Agence partenaire ou apporteur du client")
+    priority: int | None = Field(
+        None, ge=1, description="Rang de priorité (1 = la plus prioritaire, ex. projet Silver)"
+    )
+    ease: Ease | None = Field(None, description="Facilité de commercialisation")
+    status_label: str | None = Field(
+        None,
+        description="Statut suivi par l'équipe : Signé, Commercialisation active, Recherche active, Gestion locative…",
+    )
+    due_diligence: ReviewState | None = Field(None, description="Due diligence (vérification des documents)")
+    market_study: ReviewState | None = Field(None, description="Étude du marché (rapport qualité / prix)")
     next_step: str | None = None
     comments: str | None = None
 
@@ -153,6 +171,16 @@ class IapDealChanges(BaseModel):
     client: str | None = None
     owner: str | None = None
     partner: str | None = None
+    priority: int | None = Field(
+        None, ge=1, description="Rang de priorité (1 = la plus prioritaire, ex. projet Silver)"
+    )
+    ease: Ease | None = Field(None, description="Facilité de commercialisation")
+    status_label: str | None = Field(
+        None,
+        description="Statut suivi par l'équipe : Signé, Commercialisation active, Recherche active, Gestion locative…",
+    )
+    due_diligence: ReviewState | None = Field(None, description="Due diligence (vérification des documents)")
+    market_study: ReviewState | None = Field(None, description="Étude du marché (rapport qualité / prix)")
     next_step: str | None = None
     comments: str | None = None
     commission_received: Amount | None = Field(None, description="Commission effectivement perçue par IAP")
@@ -245,13 +273,21 @@ def register_iap_tools(mcp: FastMCP, deps: Deps) -> None:
         person: Annotated[str | None, Field(description="Commercial, apporteur ou closeur (nom exact)")] = None,
         nature: str | None = None,
         open: Annotated[bool | None, Field(description="true : affaires en cours (P0 à P4)")] = None,
+        ease: Annotated[Ease | None, Field(description="Facilité de commercialisation")] = None,
+        diligence_todo: Annotated[
+            bool | None,
+            Field(
+                description="true : due diligence ou étude du marché encore à mener (Nécessaire, En cours, À définir)"
+            ),
+        ] = None,
         due_before: Annotated[
             str | None, Field(pattern=DATE, description="Closing estimé au plus tard ce jour")
         ] = None,
         limit: Annotated[int, Field(ge=1, le=200)] = 50,
     ) -> dict:
-        """IAP : chercher des affaires immobilières. Renvoie le numéro, l'étape, le montant, la commission et le lien ;
-        iap_get_deal donne le détail et la répartition de la commission."""
+        """IAP : chercher des affaires immobilières, triées par priorité (1 = projet Silver). Renvoie le numéro, la
+        priorité, l'étape, le statut, la facilité de commercialisation, le montant, la commission et le lien ;
+        iap_get_deal donne le détail (due diligence, étude du marché, répartition de la commission)."""
         async with deps.api() as api:
             page = await api.get(
                 "/iap/deals",
@@ -260,6 +296,8 @@ def register_iap_tools(mcp: FastMCP, deps: Deps) -> None:
                 person=person,
                 nature=nature,
                 open=open,
+                ease=ease,
+                diligence="todo" if diligence_todo else None,
                 due_before=due_before,
                 limit=limit,
             )

@@ -11,6 +11,7 @@ import {
   COMMISSION_POLICY,
   IAP_LISTS,
   IAP_OPEN_STAGES,
+  IAP_REVIEW_TODO,
   IAP_STAGE_CODES,
   IAP_STAGES,
   IAP_WON_STAGE,
@@ -36,6 +37,8 @@ const json = <S extends z.ZodType>(schema: S, description: string) => ({
 const sum = (values: (number | null | undefined)[]) => values.reduce<number>((acc, v) => acc + (v ?? 0), 0);
 const bool = z.preprocess((v) => (v === "true" ? true : v === "false" ? false : v), z.boolean());
 const openList = `(${IAP_OPEN_STAGES.map((s) => `'${s}'`).join(",")})`;
+
+const isReviewTodo = (v: unknown) => (IAP_REVIEW_TODO as readonly unknown[]).includes(v);
 
 function nextNumber(db: DatabaseSync, table: string): number {
   return Number(one<{ n: number }>(db, `SELECT COALESCE(MAX(number), 0) + 1 AS n FROM ${table}`)!.n);
@@ -69,6 +72,11 @@ const dealInput = z
     received_at: optionalDate.openapi({ description: "Date d'encaissement de la commission par IAP" }),
     apport_paid_at: optionalDate.openapi({ description: "Date de versement de la part apport (ou de la part unique de 15 %)" }),
     closing_paid_at: optionalDate.openapi({ description: "Date de versement de la part closing" }),
+    priority: z.number().int().positive().nullable().optional().openapi({ description: "Rang de priorité (1 = la plus prioritaire, ex. projet Silver)" }),
+    ease: z.enum(IAP_LISTS.eases).nullable().optional().openapi({ description: "Facilité de commercialisation : Élevée, Moyenne ou Faible" }),
+    status_label: optionalText.openapi({ description: "Statut tel que suivi par l'équipe : Signé, Commercialisation active, Recherche active, Gestion locative…" }),
+    due_diligence: optionalText.openapi({ description: "Due diligence (vérification des documents) : Nécessaire, En cours, Fait, N/A, À définir" }),
+    market_study: optionalText.openapi({ description: "Étude du marché (rapport qualité / prix) : Nécessaire, En cours, Fait, N/A, À définir" }),
   })
   .openapi("IapDealInput");
 
@@ -119,11 +127,18 @@ export const iapDealSpec: ResourceSpec = {
     person: z.string().optional().openapi({ description: "Affaires où cette personne est apporteur ou closeur" }),
     open: bool.optional().openapi({ description: "true : affaires en cours (P0 à P4)" }),
     due_before: isoDate.optional(),
+    ease: z.enum(IAP_LISTS.eases).optional().openapi({ description: "Facilité de commercialisation" }),
+    diligence: z.enum(["todo"]).optional().openapi({ description: "todo : due diligence ou étude du marché encore à mener (Nécessaire, En cours, À définir)" }),
   }),
   where: (q: Row) => {
     const w = { clauses: [] as string[], params: {} as Record<string, string | number> };
     eq(w, "t.number", q.number);
     eq(w, "t.stage", q.stage);
+    eq(w, "t.ease", q.ease);
+    if (q.diligence === "todo") {
+      const todo = `(${IAP_REVIEW_TODO.map((v) => `'${v}'`).join(",")})`;
+      w.clauses.push(`(t.due_diligence IN ${todo} OR t.market_study IN ${todo})`);
+    }
     eq(w, "t.nature", q.nature);
     eq(w, "t.apporteur", q.apporteur);
     eq(w, "t.closeur", q.closeur);
@@ -138,8 +153,8 @@ export const iapDealSpec: ResourceSpec = {
     }
     return w;
   },
-  search: ["t.title", "t.nature", "t.apporteur", "t.closeur", "t.client", "t.owner", "t.partner", "t.next_step", "t.comments"],
-  orderBy: "t.number",
+  search: ["t.title", "t.nature", "t.apporteur", "t.closeur", "t.client", "t.owner", "t.partner", "t.next_step", "t.comments", "t.status_label"],
+  orderBy: "t.priority IS NULL, t.priority, t.number",
   present: (r) => ({ ...r, ...iapDealComputed(r as never) }),
   label: (r) => `#${r.number} ${r.title}`,
   prepare: (db, data, existing) => {
@@ -258,7 +273,7 @@ export const IAP_SPECS = [iapDealSpec, iapActionSpec, iapContactSpec];
 type Deal = Row & ReturnType<typeof iapDealComputed> & { number: number; title: string; stage: string; amount: number | null; apporteur: string | null; closeur: string | null; commission_received: number | null };
 
 export function loadIapDeals(db: DatabaseSync): Deal[] {
-  return all(db, "SELECT * FROM iap_deals ORDER BY number").map((r) => iapDealSpec.present(r) as Deal);
+  return all(db, "SELECT * FROM iap_deals ORDER BY priority IS NULL, priority, number").map((r) => iapDealSpec.present(r) as Deal);
 }
 
 export function buildIapSummary(db: DatabaseSync) {
@@ -290,6 +305,7 @@ export function buildIapSummary(db: DatabaseSync) {
       commission_received: sum(deals.map((d) => d.commission_received)),
       mandates_signed_count: deals.filter((d) => d.stage !== "P0" && d.stage !== "LOST").length,
       to_sign_count: deals.filter((d) => d.stage === "P0").length,
+      diligence_todo_count: open.filter((d) => isReviewTodo(d.due_diligence) || isReviewTodo(d.market_study)).length,
       open_actions_count: actions.filter((a) => !a.done).length,
       overdue_actions_count: actions.filter((a) => a.overdue).length,
     },
@@ -312,7 +328,7 @@ export function buildIapAgenda(db: DatabaseSync, days: number) {
   const actions = all(db, `${iapActionSpec.select} WHERE t.status NOT IN ('Fait', 'Abandonné') AND t.due_date <= :horizon ORDER BY t.due_date, t.priority`, { horizon }).map(
     (r) => iapActionSpec.present(r),
   );
-  const deals = all(db, `SELECT * FROM iap_deals WHERE due_date <= :horizon AND stage IN ${openList} ORDER BY due_date`, { horizon }).map((r) => iapDealSpec.present(r));
+  const deals = all(db, `SELECT * FROM iap_deals WHERE due_date <= :horizon AND stage IN ${openList} ORDER BY due_date, priority IS NULL, priority`, { horizon }).map((r) => iapDealSpec.present(r));
   return { as_of: now, horizon, actions, deals };
 }
 

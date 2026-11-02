@@ -52,6 +52,19 @@ async def test_iap_search_deals_filters_and_links_to_the_iap_space(api, call):
     assert "closeur" not in deal  # même personne que l'apporteur : non répété
 
 
+async def test_iap_search_deals_filters_by_ease_and_pending_due_diligence(api, call):
+    deal = iap_deal(5, "Villa 2.069m² Cocody Danga") | {"priority": 4, "ease": "Moyenne", "status_label": "Signé"}
+    route = api.get(f"{API}/iap/deals").respond(json=page([deal]))
+
+    result = await call("iap_search_deals", ease="Moyenne", diligence_todo=True)
+
+    params = route.calls.last.request.url.params
+    assert params["ease"] == "Moyenne"
+    assert params["diligence"] == "todo"
+    found = result["deals"][0]
+    assert (found["priority"], found["ease"], found["status"]) == (4, "Moyenne", "Signé")
+
+
 async def test_iap_get_deal_gives_the_commission_split(api, call):
     api.get(f"{API}/iap/deals").respond(json=page([iap_deal(8, "Villa 408m² attoban", closeur="Sali Traoré")]))
     api.get(f"{API}/iap/actions").respond(json=page([]))

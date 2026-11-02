@@ -313,6 +313,20 @@ export const IAP_FLOW_STAGES = IAP_STAGES.slice(0, 6);
 
 export const IAP_NATURES = ["Vente bien immobilier", "Vente de terrain", "Mandat de recherche", "Mandat de gestion", "Location", "Construction"];
 export const IAP_PEOPLE = ["Koumba Assanvo", "Serges Gnonblesson", "Sali Traoré", "Landry Digbeu"];
+export const IAP_EASES = ["Élevée", "Moyenne", "Faible"] as const;
+export type IapEase = (typeof IAP_EASES)[number];
+export const IAP_REVIEW_STATES = ["Nécessaire", "En cours", "Fait", "N/A", "À définir"];
+/** Due diligence ou étude du marché encore à mener (même règle que l'API). */
+export const IAP_REVIEW_TODO = ["Nécessaire", "En cours", "À définir"];
+export const IAP_STATUSES = [
+  "Pas encore signé",
+  "Signé",
+  "Commercialisation active",
+  "Recherche active",
+  "Gestion locative",
+  "Visite de site à prévoir",
+  "Attente des documents",
+];
 export const IAP_CONTACT_ROLES = ["Acquéreur", "Locataire", "Propriétaire", "Agence partenaire", "Apporteur d'affaires", "Autre"];
 /** Fiche de commissionnement IAP, effet au 14 septembre 2026. */
 export const COMMISSION_POLICY = { apport: 0.05, closing: 0.1, combined: 0.15, effectiveFrom: "2026-09-14" };
@@ -355,6 +369,11 @@ export type IapDeal = {
   received_at: string | null;
   apport_paid_at: string | null;
   closing_paid_at: string | null;
+  priority: number | null;
+  ease: IapEase | null;
+  status_label: string | null;
+  due_diligence: string | null;
+  market_study: string | null;
   commission_base: number | null;
   commission_estimated: boolean;
   shares: CommissionShare[];
@@ -405,6 +424,7 @@ export type IapSummary = {
     commission_received: number;
     mandates_signed_count: number;
     to_sign_count: number;
+    diligence_todo_count: number;
     open_actions_count: number;
     overdue_actions_count: number;
   };

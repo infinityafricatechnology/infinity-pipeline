@@ -20,6 +20,9 @@ son espace, avec ses propres données. Répondez en français.
   P4 acompte / compromis, P5 conclu, LOST perdu. Commission = montant × taux ; pondérée = × closing.
   Fiche de commissionnement (depuis le 14/09/2026) : apporteur 5 %, closeur 10 %, 15 % si la même personne
   apporte et conclut, calculés sur la commission effectivement perçue par IAP.
+  Chaque affaire porte aussi une priorité (1 = la plus haute, le projet Silver), un statut suivi par l'équipe
+  (Signé, Commercialisation active…), une facilité de commercialisation (Élevée / Moyenne / Faible) et l'état de
+  la due diligence et de l'étude du marché ; les listes sont triées par priorité.
 - Si la filiale n'est pas claire (« l'affaire 12 », « le pipeline »), demandez laquelle ; whoami indique les espaces
   accessibles (user.spaces). Ne mélangez jamais les chiffres des deux filiales.
 

@@ -55,6 +55,14 @@ export function IapOverview() {
               <strong className="num">{p.to_sign_count}</strong>
               mandats à signer
             </div>
+            {p.diligence_todo_count > 0 && (
+              <div>
+                <Link to="/iap/affaires?dd=todo">
+                  <strong className="num">{p.diligence_todo_count}</strong>
+                  due diligences à mener
+                </Link>
+              </div>
+            )}
           </div>
         </div>
         <PipelineRibbon

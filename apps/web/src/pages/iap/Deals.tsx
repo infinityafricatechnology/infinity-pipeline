@@ -3,19 +3,29 @@ import { useSearchParams } from "react-router";
 import { IconGrid, IconList, IconPlus } from "../../components/icons";
 import { IapDealSheet } from "../../components/iap-sheets";
 import { Pagination, usePaged } from "../../components/Pagination";
-import { Amount, Due, Empty, FilterSelect, Loading, Search, Segmented, Stage, useToast } from "../../components/ui";
+import { Amount, Due, Empty, FilterSelect, Loading, Search, Segmented, Stage, Status, type Tone, useToast } from "../../components/ui";
 import { type Page, qs, useApi, useSave } from "../../lib/api";
 import { useDeepLink } from "../../lib/deeplink";
 import { compact, fcfa, pct } from "../../lib/format";
-import { IAP_NATURES, IAP_PEOPLE, IAP_STAGES, type IapDeal } from "../../lib/types";
+import { IAP_EASES, IAP_NATURES, IAP_PEOPLE, IAP_REVIEW_TODO, IAP_STAGES, type IapDeal, type IapEase } from "../../lib/types";
 
-type SortKey = "number" | "stage" | "amount" | "commission" | "weighted_commission" | "due_date";
+type SortKey = "priority" | "number" | "stage" | "amount" | "commission" | "weighted_commission" | "due_date";
 const STAGE_ORDER = IAP_STAGES.map((s) => s.code as string);
 
 function sortValue(d: IapDeal, key: SortKey): number | string | null {
   if (key === "stage") return STAGE_ORDER.indexOf(d.stage);
   return d[key] ?? null;
 }
+
+const EASE_TONES: Record<IapEase, Tone> = { Élevée: "good", Moyenne: "warn", Faible: "none" };
+
+/** Facilité de commercialisation : vert si élevée, ambre si moyenne, gris si faible. */
+export function Ease({ value }: { value: IapEase | null }) {
+  if (!value) return null;
+  return <Status tone={EASE_TONES[value]}>{value}</Status>;
+}
+
+const reviewTodo = (d: IapDeal) => IAP_REVIEW_TODO.includes(d.due_diligence ?? "") || IAP_REVIEW_TODO.includes(d.market_study ?? "");
 
 /** Jauge d'étape aux étapes immobilières (P0 → P5). */
 export function IapStage({ code }: { code: string | null }) {
@@ -54,6 +64,8 @@ export function IapDeals() {
     stage: params.get("stage") ?? "",
     nature: params.get("nature") ?? "",
     person: params.get("personne") ?? "",
+    ease: params.get("facilite") ?? "",
+    diligence: params.get("dd") ?? "",
   };
   const set = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -62,7 +74,7 @@ export function IapDeals() {
     setParams(next, { replace: true });
   };
   const { data, isLoading } = useApi<Page<IapDeal>>(
-    `/iap/deals${qs({ q: filters.q, stage: view === "board" ? "" : filters.stage, nature: filters.nature, person: filters.person, limit: 500 })}`,
+    `/iap/deals${qs({ q: filters.q, stage: view === "board" ? "" : filters.stage, nature: filters.nature, person: filters.person, ease: filters.ease, diligence: filters.diligence, limit: 500 })}`,
     { keepPrevious: true },
   );
   const [open, setOpen] = useState<IapDeal | "new" | null>(null);
@@ -71,7 +83,7 @@ export function IapDeals() {
   const total = deals.reduce((t, d) => t + (d.amount ?? 0), 0);
   const commission = deals.reduce((t, d) => t + (d.commission ?? 0), 0);
   const weighted = deals.reduce((t, d) => t + (d.weighted_commission ?? 0), 0);
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "number", dir: 1 });
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "priority", dir: 1 });
   const onSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: ["amount", "commission", "weighted_commission"].includes(key) ? -1 : 1 }));
   const sorted = useMemo(
@@ -126,6 +138,13 @@ export function IapDeals() {
         )}
         <FilterSelect label="Nature" value={filters.nature} onChange={(v) => set("nature", v)} options={IAP_NATURES} />
         <FilterSelect label="Commercial" value={filters.person} onChange={(v) => set("personne", v)} options={IAP_PEOPLE} />
+        <FilterSelect label="Facilité" value={filters.ease} onChange={(v) => set("facilite", v)} options={[...IAP_EASES]} />
+        <FilterSelect
+          label="Due diligence"
+          value={filters.diligence}
+          onChange={(v) => set("dd", v)}
+          options={[{ value: "todo", label: "À mener" }]}
+        />
         {filtered && (
           <button type="button" className="btn btn-plain" onClick={clearFilters}>
             Effacer les filtres
@@ -158,7 +177,7 @@ export function IapDeals() {
           <table className="table">
             <thead>
               <tr>
-                <SortHeader label="N°" column="number" sort={sort} onSort={onSort} className="right" />
+                <SortHeader label="Prio." column="priority" sort={sort} onSort={onSort} className="right" />
                 <th>Bien ou projet</th>
                 <SortHeader label="Étape" column="stage" sort={sort} onSort={onSort} />
                 <SortHeader label="Montant" column="amount" sort={sort} onSort={onSort} className="right" />
@@ -171,13 +190,24 @@ export function IapDeals() {
             <tbody>
               {paged.items.map((d) => (
                 <tr key={d.id} onClick={() => setOpen(d)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setOpen(d)}>
-                  <td className="right num muted">{d.number}</td>
+                  <td className="right num" title={`Affaire n° ${d.number}`}>
+                    {d.priority ?? <span className="muted">—</span>}
+                  </td>
                   <td className="cell-title">
                     {d.title}
-                    <span className="cell-sub">{[d.nature, d.apporteur].filter(Boolean).join(" · ")}</span>
+                    <span className="cell-sub">{[`n° ${d.number}`, d.nature, d.apporteur].filter(Boolean).join(" · ")}</span>
+                    {reviewTodo(d) && (
+                      <span className="cell-sub warn-text">
+                        Due diligence {d.due_diligence ?? "—"} · étude du marché {d.market_study ?? "—"}
+                      </span>
+                    )}
                   </td>
                   <td>
                     <IapStage code={d.stage} />
+                    <span className="cell-sub" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {d.status_label}
+                      <Ease value={d.ease} />
+                    </span>
                   </td>
                   <td className="right">
                     <Amount value={d.amount} />
@@ -311,8 +341,16 @@ function Board({ deals, onOpen }: { deals: IapDeal[]; onOpen: (d: IapDeal) => vo
                 }}
                 onClick={() => onOpen(d)}
               >
-                <div className="card-title">{d.title}</div>
-                <div className="card-account">{[d.nature, d.apporteur].filter(Boolean).join(" · ")}</div>
+                <div className="card-title">
+                  {d.priority != null && <span className="num muted" title="Priorité">#{d.priority} </span>}
+                  {d.title}
+                </div>
+                <div className="card-account">{[d.status_label, d.apporteur].filter(Boolean).join(" · ")}</div>
+                {d.ease && (
+                  <div style={{ margin: "4px 0" }}>
+                    <Ease value={d.ease} />
+                  </div>
+                )}
                 <div className="card-foot">
                   <span className="t-caption num">{d.commission != null ? `${compact(d.commission)} comm.` : "Comm. à définir"}</span>
                   <Amount value={d.amount} />

@@ -275,6 +275,11 @@ CREATE TABLE IF NOT EXISTS iap_deals (
   received_at TEXT,
   apport_paid_at TEXT,
   closing_paid_at TEXT,
+  priority INTEGER,
+  ease TEXT CHECK (ease IN ('Élevée', 'Moyenne', 'Faible')),
+  status_label TEXT,
+  due_diligence TEXT,
+  market_study TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -306,3 +311,9 @@ CREATE TABLE IF NOT EXISTS iap_actions (
 );
 
 CREATE INDEX IF NOT EXISTS iap_actions_deal ON iap_actions(deal_id);
+
+-- Réglages internes (ex. version des données IAP chargées depuis le classeur).
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);

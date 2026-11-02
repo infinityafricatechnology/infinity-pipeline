@@ -19,7 +19,7 @@ export function openDatabase(path = process.env.DATABASE_PATH ?? "data/iat.db"):
 
 /** Mises à jour des bases créées par une version précédente (le schéma ne fait que CREATE IF NOT EXISTS). */
 function migrate(db: DatabaseSync) {
-  const added: [table: string, column: string][] = [
+  const added: [table: string, column: string, type?: string][] = [
     ["users", "password_changed_at"],
     ["accounts", "billing_details"],
     ["invoices", "invoice_number"],
@@ -27,10 +27,16 @@ function migrate(db: DatabaseSync) {
     ["users", "spaces"],
     // Filiale concernée par l'événement ; vide = IAT (événements antérieurs à l'espace IAP).
     ["activity", "space"],
+    // Classeur IAP assaini (PIPELINE_IAP_2.xlsx) : priorité, facilité de commercialisation, statut, due diligence.
+    ["iap_deals", "priority", "INTEGER"],
+    ["iap_deals", "ease"],
+    ["iap_deals", "status_label"],
+    ["iap_deals", "due_diligence"],
+    ["iap_deals", "market_study"],
   ];
-  for (const [table, column] of added) {
+  for (const [table, column, type = "TEXT"] of added) {
     const columns = (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
-    if (!columns.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`);
+    if (!columns.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
   db.exec("CREATE INDEX IF NOT EXISTS activity_space ON activity(space)");
 }

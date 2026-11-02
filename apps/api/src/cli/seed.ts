@@ -6,7 +6,8 @@
  *   pnpm seed --force    efface les données métier puis recharge (utilisateurs et jetons conservés)
  *
  * Les données d'IAP (data/seed-iap.json, produit par `pnpm import-iap`) sont chargées de la même façon,
- * indépendamment : une base IAT déjà remplie reçoit les données IAP si l'espace IAP est vide.
+ * indépendamment : une base IAT déjà remplie reçoit les données IAP si l'espace IAP est vide, ou si le
+ * fichier porte une version plus récente que celle déjà chargée (voir syncIapSeed).
  */
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -51,30 +52,52 @@ export function loadSeed(db: DatabaseSync, data: Record<string, Item[]>) {
 
 const IAP_TABLES = ["iap_actions", "iap_contacts", "iap_deals"];
 
-export function loadIapSeed(db: DatabaseSync, data: { deals: Item[]; actions?: Item[]; contacts?: Item[] }) {
+export function loadIapSeed(db: DatabaseSync, data: IapSeed) {
   const dealIds = new Map<number, number>();
   for (const d of data.deals) dealIds.set(Number(d.number), insert(db, "iap_deals", d));
   for (const { deal, ...a } of data.actions ?? []) insert(db, "iap_actions", { ...a, deal_id: deal ? (dealIds.get(Number(deal)) ?? null) : null });
   for (const c of data.contacts ?? []) insert(db, "iap_contacts", c);
 }
 
-function seedIap(db: DatabaseSync, force: boolean) {
-  const file = resolve(projectRoot, process.env.IAP_SEED_PATH ?? "data/seed-iap.json");
-  if (!existsSync(file)) return;
-  if (one(db, "SELECT id FROM iap_deals LIMIT 1") && !force) {
-    console.log("L'espace IAP contient déjà des données : rien n'est rechargé.");
-    return;
-  }
-  const data = JSON.parse(readFileSync(file, "utf8"));
+type IapSeed = { version?: number; deals: Item[]; actions?: Item[]; contacts?: Item[] };
+
+/**
+ * Charge les données IAP du classeur. Une base vide les reçoit toujours ; une base déjà remplie seulement
+ * si le fichier porte une version plus récente que celle déjà chargée (classeur assaini par l'équipe) :
+ * affaires, actions et journal IAP sont alors remplacés, les contacts saisis dans l'application conservés.
+ * Ensuite la version est enregistrée : les modifications faites dans l'application ne sont plus écrasées.
+ */
+export function syncIapSeed(db: DatabaseSync, data: IapSeed, force = false): "loaded" | "replaced" | "kept" {
+  const version = Number(data.version ?? 1);
+  const hasData = Boolean(one(db, "SELECT id FROM iap_deals LIMIT 1"));
+  const stored = one<{ value: string }>(db, "SELECT value FROM meta WHERE key = 'iap_seed_version'");
+  // Base remplie avant l'existence du marqueur : c'était la première version du classeur.
+  const loaded = stored ? Number(stored.value) : hasData ? 1 : 0;
+  if (hasData && !force && version <= loaded) return "kept";
   transaction(db, () => {
-    if (force) {
-      for (const table of IAP_TABLES) db.exec(`DELETE FROM ${table}`);
+    if (hasData) {
+      db.exec("DELETE FROM iap_actions");
+      db.exec("DELETE FROM iap_deals");
+      if (force) db.exec("DELETE FROM iap_contacts");
       db.exec("DELETE FROM activity WHERE space = 'iap'");
     }
     loadIapSeed(db, data);
+    db.prepare("INSERT INTO meta (key, value) VALUES ('iap_seed_version', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(String(version));
   });
+  return hasData ? "replaced" : "loaded";
+}
+
+function seedIap(db: DatabaseSync, force: boolean) {
+  const file = resolve(projectRoot, process.env.IAP_SEED_PATH ?? "data/seed-iap.json");
+  if (!existsSync(file)) return;
+  const data = JSON.parse(readFileSync(file, "utf8")) as IapSeed;
+  const result = syncIapSeed(db, data, force);
+  if (result === "kept") {
+    console.log("L'espace IAP contient déjà des données à jour : rien n'est rechargé.");
+    return;
+  }
   const counts = Object.fromEntries(IAP_TABLES.map((t) => [t, one<{ n: number }>(db, `SELECT COUNT(*) AS n FROM ${t}`)!.n]));
-  console.log("Données IAP chargées :", counts);
+  console.log(`Données IAP ${result === "replaced" ? "remplacées (classeur v" + (data.version ?? 1) + ")" : "chargées"} :`, counts);
 }
 
 /**

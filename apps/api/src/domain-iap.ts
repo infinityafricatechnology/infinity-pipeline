@@ -44,9 +44,26 @@ export const IAP_LISTS = {
   people: ["Koumba Assanvo", "Serges Gnonblesson", "Sali Traoré", "Landry Digbeu"],
   contact_roles: ["Acquéreur", "Locataire", "Propriétaire", "Agence partenaire", "Apporteur d'affaires", "Autre"],
   priorities: ["P1", "P2", "P3"],
+  /** Facilité de commercialisation du bien. */
+  eases: ["Élevée", "Moyenne", "Faible"],
+  /** État de la due diligence (vérification des documents) et de l'étude du marché. */
+  review_states: ["Nécessaire", "En cours", "Fait", "N/A", "À définir"],
+  /** Statuts libres du classeur, proposés en suggestion. */
+  statuses: [
+    "Pas encore signé",
+    "Signé",
+    "Commercialisation active",
+    "Recherche active",
+    "Gestion locative",
+    "Visite de site à prévoir",
+    "Attente des documents",
+  ],
   action_statuses: ["À faire", "En cours", "Bloqué", "Fait", "Abandonné"],
   commission_policy: COMMISSION_POLICY,
 } as const;
+
+/** Due diligence ou étude du marché restant à mener. */
+export const IAP_REVIEW_TODO = ["Nécessaire", "En cours", "À définir"] as const;
 
 /** Accepte le code (« P1 ») ou le libellé (« Mandat signé »), sans tenir compte de la casse. */
 export function normalizeIapStage(value: unknown): unknown {

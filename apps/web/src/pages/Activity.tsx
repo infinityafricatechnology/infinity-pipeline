@@ -22,6 +22,13 @@ const ENTITIES: Record<string, string> = {
   iap_deal: "Affaire",
   iap_action: "Action",
   iap_contact: "Contact",
+  iac_deal: "Affaire",
+  iac_action: "Action",
+  iac_contact: "Contact",
+  iaf_deal: "Affaire",
+  iaf_action: "Action",
+  iaf_contact: "Contact",
+  partner: "Partenaire",
 };
 const VERBS = { create: "a créé", update: "a modifié", delete: "a supprimé" };
 

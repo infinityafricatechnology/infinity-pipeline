@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
 import type { SpaceCode } from "../lib/space";
-import type { IapSummary, Summary } from "../lib/types";
+import type { FinSummary, GroupSummary, IapSummary, Summary } from "../lib/types";
 import {
   IconAccounts,
   IconActions,
   IconActivity,
+  IconCash,
   IconCommission,
   IconContacts,
   IconDeals,
   IconOverview,
+  IconPartners,
   IconRenewals,
   IconSettings,
   IconSolutions,
@@ -113,7 +115,76 @@ const IAP_NAV: NavEntry[] = [
   { to: "/iap/reglages", label: "Réglages", icon: <IconSettings />, words: "jeton claude mot de passe utilisateurs espaces" },
 ];
 
-export const NAV: Record<SpaceCode, NavEntry[]> = { iat: IAT_NAV, iap: IAP_NAV };
+/** IAC et IAF : même navigation, chacune sous son préfixe. */
+function finNav(base: string, words: string): NavEntry[] {
+  return [
+    { to: base, label: "Vue d’ensemble", icon: <IconOverview />, words: `accueil synthese tableau de bord ${words}` },
+    {
+      to: `${base}/affaires`,
+      label: "Affaires",
+      icon: <IconDeals />,
+      words: `entreprises projets mandats pipeline ${words}`,
+      count: (s: FinSummary) => s.pipeline.deals_count,
+      countLabel: "affaires",
+      extra: [{ label: "Affaires par étape", to: `${base}/affaires?vue=etapes`, words: "kanban colonnes etapes" }],
+    },
+    {
+      to: `${base}/encaissements`,
+      label: "Encaissements",
+      icon: <IconCash />,
+      words: "honoraires commissions recouvrement paiement facturation solde",
+    },
+    {
+      to: `${base}/actions`,
+      label: "Plan d’actions",
+      icon: <IconActions />,
+      words: "taches a faire relances",
+      count: (s: FinSummary) => s.pipeline.overdue_actions_count,
+      alert: true,
+      countLabel: "en retard",
+    },
+    {
+      to: `${base}/contacts`,
+      label: "Contacts",
+      icon: <IconContacts />,
+      group: "Portefeuille",
+      words: "dirigeants banques bailleurs investisseurs",
+      count: (s: FinSummary) => s.contacts_count,
+      countLabel: "contacts",
+    },
+    { to: `${base}/journal`, label: "Journal", icon: <IconActivity />, group: "Suivi", words: "historique activite modifications claude" },
+    { to: `${base}/reglages`, label: "Réglages", icon: <IconSettings />, words: "jeton claude mot de passe utilisateurs espaces" },
+  ];
+}
+
+const GROUP_NAV: NavEntry[] = [
+  { to: "/groupe", label: "Vue Groupe", icon: <IconOverview />, words: "accueil consolide filiales synthese groupe iag" },
+  {
+    to: "/groupe/partenaires",
+    label: "Partenaires",
+    icon: <IconPartners />,
+    words: "partenariats cartographie alliances referents",
+    count: (s: GroupSummary) => s.partners.overdue_count || undefined,
+    alert: true,
+    countLabel: "échéances dépassées",
+  },
+  { to: "/groupe/journal", label: "Journal", icon: <IconActivity />, group: "Suivi", words: "historique activite modifications claude" },
+  { to: "/groupe/reglages", label: "Réglages", icon: <IconSettings />, words: "jeton claude mot de passe utilisateurs espaces" },
+];
+
+export const NAV: Record<SpaceCode, NavEntry[]> = {
+  iat: IAT_NAV,
+  iap: IAP_NAV,
+  iac: finNav("/iac", "capitaux mobilisation"),
+  iaf: finNav("/iaf", "financement levee de fonds dette equity"),
+  iag: GROUP_NAV,
+};
 
 /** Synthèse qui alimente les compteurs de la barre latérale. */
-export const SUMMARY_PATH: Record<SpaceCode, string> = { iat: "/summary", iap: "/iap/summary" };
+export const SUMMARY_PATH: Record<SpaceCode, string> = {
+  iat: "/summary",
+  iap: "/iap/summary",
+  iac: "/iac/summary",
+  iaf: "/iaf/summary",
+  iag: "/groupe/summary",
+};

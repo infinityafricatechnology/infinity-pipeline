@@ -291,7 +291,7 @@ export type Summary = {
 export type Agenda = { as_of: string; horizon: string; actions: Action[]; renewals: Renewal[]; deals: Deal[] };
 
 export type Me = {
-  user: { id: number; email: string; name: string; role: string; spaces: ("iat" | "iap")[] };
+  user: { id: number; email: string; name: string; role: string; spaces: ("iat" | "iap" | "iac" | "iaf" | "iag")[] };
   via: string;
   today: string;
 };
@@ -451,4 +451,209 @@ export type IapCommissions = {
     base: number | null;
     estimated: boolean;
   })[];
+};
+
+/* ---------- IAC (Infinity Africa Capital) et IAF (Infinity Africa Finance) : même modèle ---------- */
+
+export type FinStageCode = "F0" | "F1" | "F2" | "F3" | "F4" | "F5" | "LOST";
+
+export const FIN_STAGES: { code: FinStageCode; label: string; short: string }[] = [
+  { code: "F0", label: "Prospection", short: "Prospection" },
+  { code: "F1", label: "Étude de faisabilité / documents", short: "Étude" },
+  { code: "F2", label: "Mandat signé", short: "Mandat signé" },
+  { code: "F3", label: "Structuration / dossier transmis", short: "Structuration" },
+  { code: "F4", label: "Financement obtenu, à recouvrer", short: "À recouvrer" },
+  { code: "F5", label: "Encaissé", short: "Encaissé" },
+  { code: "LOST", label: "Perdu", short: "Perdu" },
+];
+export const FIN_FLOW_STAGES = FIN_STAGES.slice(0, 6);
+
+export const FIN_NATURES = [
+  "Mobilisation de capitaux",
+  "Levée de fonds Dette",
+  "Levée de fonds Equity",
+  "Leasing",
+  "Restructuration",
+  "Cession de parts",
+  "Acquisition d'équipements",
+  "Création de fonds d'investissement",
+  "Financement de projet",
+  "À définir",
+];
+export const FIN_SECTORS = [
+  "Agro Alimentaire",
+  "Agro Industrie",
+  "BTP",
+  "Biométane",
+  "Éducation",
+  "Énergie",
+  "Hydrocarbures",
+  "Import / Export",
+  "Industrie",
+  "Logistique",
+  "Microfinance",
+  "Minier",
+  "Santé",
+  "Transport",
+];
+export const FIN_CONTACT_ROLES = ["Dirigeant client", "Banque / bailleur", "Investisseur", "Partenaire", "Conseil", "Autre"];
+
+export type FinDeal = {
+  id: number;
+  number: number;
+  title: string;
+  nature: string | null;
+  sector: string | null;
+  owner: string | null;
+  apporteur: string | null;
+  stage: FinStageCode;
+  stage_label: string | null;
+  closing: number | null;
+  due_date: string | null;
+  amount: number | null;
+  fee: number | null;
+  fee_received: number | null;
+  fee_received_at: string | null;
+  commission_rate: number | null;
+  commission_received: number | null;
+  commission_received_at: string | null;
+  priority: number | null;
+  next_step: string | null;
+  comments: string | null;
+  commission: number | null;
+  revenue: number | null;
+  weighted_amount: number | null;
+  weighted_commission: number | null;
+  weighted_revenue: number | null;
+  received: number;
+  fee_outstanding: number;
+  commission_outstanding: number;
+  outstanding: number;
+  is_open: boolean;
+  is_won: boolean;
+  days_to_due: number | null;
+  overdue: boolean;
+};
+
+/** Mêmes champs que l'action IAP : relance rattachée à une affaire de la filiale. */
+export type FinAction = IapAction;
+export type FinContact = IapContact;
+
+type FinTotals = { count: number; amount: number; weighted_amount: number; fee: number; commission: number; weighted_revenue: number };
+
+export type FinSummary = {
+  as_of: string;
+  space: "iac" | "iaf";
+  pipeline: {
+    deals_count: number;
+    open_count: number;
+    total_amount: number;
+    open_amount: number;
+    weighted_amount: number;
+    fee: number;
+    commission: number;
+    revenue: number;
+    weighted_revenue: number;
+    won_count: number;
+    won_amount: number;
+    mandates_count: number;
+    overdue_count: number;
+    open_actions_count: number;
+    overdue_actions_count: number;
+  };
+  cash: {
+    received: number;
+    fee_received: number;
+    commission_received: number;
+    fee_outstanding: number;
+    commission_outstanding: number;
+    outstanding: number;
+  };
+  by_stage: ({ key: FinStageCode; label: string; short: string } & FinTotals)[];
+  by_sector: ({ key: string } & FinTotals)[];
+  by_nature: ({ key: string } & FinTotals)[];
+  by_owner: ({ key: string } & FinTotals)[];
+  contacts_count: number;
+};
+
+export type FinAgenda = { as_of: string; horizon: string; actions: FinAction[]; deals: FinDeal[] };
+
+export type FinRecovery = {
+  totals: { fee_outstanding: number; commission_outstanding: number; outstanding: number; received: number };
+  results: {
+    deal_id: number;
+    deal_number: number;
+    deal_title: string;
+    stage: FinStageCode;
+    stage_label: string;
+    owner: string | null;
+    fee: number | null;
+    fee_received: number;
+    fee_received_at: string | null;
+    fee_outstanding: number;
+    commission: number | null;
+    commission_received: number;
+    commission_received_at: string | null;
+    commission_outstanding: number;
+    outstanding: number;
+    next_step: string | null;
+  }[];
+};
+
+/* ---------- Groupe IAG ---------- */
+
+export const PARTNER_ENTITIES = ["Groupe", "IAT", "IAP", "IAC", "IAF"] as const;
+export const PARTNER_POTENTIALS = ["Élevé", "Moyen", "Faible"] as const;
+
+export type Partner = {
+  id: number;
+  number: number;
+  entity: string;
+  name: string;
+  type: string | null;
+  zone: string | null;
+  expertise: string | null;
+  complementarity: string | null;
+  market_access: string | null;
+  potential: (typeof PARTNER_POTENTIALS)[number] | null;
+  model: string | null;
+  relationship: string | null;
+  legal_status: string | null;
+  iag_referent: string | null;
+  partner_referent: string | null;
+  opportunities: string | null;
+  potential_revenue: number | null;
+  margin: string | null;
+  last_interaction: string | null;
+  next_action: string | null;
+  due_date: string | null;
+  priority: string | null;
+  risks: string | null;
+  days_to_due: number | null;
+  overdue: boolean;
+};
+
+type SubsidiaryTotals = {
+  deals_count: number;
+  open_count: number;
+  open_amount: number;
+  weighted_amount: number;
+  revenue: number;
+  won_amount: number;
+  received: number;
+  overdue_actions_count: number;
+};
+
+export type GroupSummary = {
+  as_of: string;
+  subsidiaries: ({ space: "iat" | "iap" | "iac" | "iaf"; name: string; full_name: string } & SubsidiaryTotals)[];
+  totals: SubsidiaryTotals;
+  partners: {
+    count: number;
+    high_potential_count: number;
+    p1_count: number;
+    overdue_count: number;
+    potential_revenue: number;
+    by_entity: { key: string; count: number }[];
+  };
 };

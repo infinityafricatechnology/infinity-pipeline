@@ -3,8 +3,8 @@ import { useLocation, useNavigate } from "react-router";
 import { api, type Page } from "../lib/api";
 import { compact } from "../lib/format";
 import { equivalentPath, SPACES, type SpaceCode, useSpace } from "../lib/space";
-import type { Account, Action, Contact, Deal, IapAction, IapContact, IapDeal } from "../lib/types";
-import { IconAccounts, IconActions, IconChevron, IconContacts, IconDeals, IconSearch, IconSwitch } from "./icons";
+import type { Account, Action, Contact, Deal, FinDeal, IapAction, IapContact, IapDeal, Partner } from "../lib/types";
+import { IconAccounts, IconActions, IconChevron, IconContacts, IconDeals, IconPartners, IconSearch, IconSwitch } from "./icons";
 import { NAV } from "./nav";
 
 type Result = { key: string; group: string; title: string; meta?: string; to: string; icon: React.ReactNode };
@@ -70,6 +70,59 @@ export function CommandPalette({ open, onClose, spaces }: { open: boolean; onClo
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       const enc = encodeURIComponent(q);
+      if (space.code === "iag") {
+        const partners = await api.get<Page<Partner>>(`/groupe/partners?q=${enc}&limit=10`).catch(() => null);
+        if (cancelled) return;
+        setResults(
+          (partners?.results ?? []).map((p) => ({
+            key: `p${p.id}`,
+            group: "Partenaires",
+            title: p.name,
+            meta: [p.entity, p.type, p.iag_referent].filter(Boolean).join(" · "),
+            to: `/groupe/partenaires?partenaire=${p.id}`,
+            icon: <IconPartners />,
+          })),
+        );
+        setActive(0);
+        return;
+      }
+      if (space.code === "iac" || space.code === "iaf") {
+        const { api: prefix, base, name } = space;
+        const [deals, contacts, actions] = await Promise.all([
+          api.get<Page<FinDeal>>(`${prefix}/deals?q=${enc}&limit=8`).catch(() => null),
+          api.get<Page<IapContact>>(`${prefix}/contacts?q=${enc}&limit=6`).catch(() => null),
+          api.get<Page<IapAction>>(`${prefix}/actions?q=${enc}&limit=5&open=true`).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setResults([
+          ...(deals?.results ?? []).map((d) => ({
+            key: `d${d.id}`,
+            group: `Affaires ${name}`,
+            title: `${d.number}. ${d.title}`,
+            meta: [d.sector, d.stage_label, d.amount ? compact(d.amount) : null].filter(Boolean).join(" · "),
+            to: `${base}/affaires?affaire=${d.number}`,
+            icon: <IconDeals />,
+          })),
+          ...(contacts?.results ?? []).map((c) => ({
+            key: `c${c.id}`,
+            group: `Contacts ${name}`,
+            title: c.name,
+            meta: [c.role, c.company].filter(Boolean).join(" · "),
+            to: `${base}/contacts?contact=${c.id}`,
+            icon: <IconContacts />,
+          })),
+          ...(actions?.results ?? []).map((a) => ({
+            key: `t${a.id}`,
+            group: `Actions ${name}`,
+            title: a.title,
+            meta: [a.deal_title, a.due_date ? `échéance ${a.due_date.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · "),
+            to: `${base}/actions?action=${a.number}`,
+            icon: <IconActions />,
+          })),
+        ]);
+        setActive(0);
+        return;
+      }
       if (space.code === "iap") {
         const [deals, contacts, actions] = await Promise.all([
           api.get<Page<IapDeal>>(`/iap/deals?q=${enc}&limit=8`).catch(() => null),
@@ -153,7 +206,7 @@ export function CommandPalette({ open, onClose, spaces }: { open: boolean; onClo
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, space.code]);
+  }, [query, space]);
 
   const items = query.trim().length >= 2 ? [...results, ...pages.slice(0, 4)] : pages;
 
@@ -174,7 +227,15 @@ export function CommandPalette({ open, onClose, spaces }: { open: boolean; onClo
           <input
             ref={input}
             value={query}
-            placeholder={space.code === "iap" ? "Rechercher un bien, un commercial, un contact, une action…" : "Rechercher un compte, une affaire, un contact, une action…"}
+            placeholder={
+              space.code === "iap"
+                ? "Rechercher un bien, un commercial, un contact, une action…"
+                : space.code === "iag"
+                  ? "Rechercher un partenaire, un référent…"
+                  : space.code === "iat"
+                    ? "Rechercher un compte, une affaire, un contact, une action…"
+                    : "Rechercher une entreprise, un contact, une action…"
+            }
             aria-label="Rechercher"
             role="combobox"
             aria-expanded="true"

@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Page, useApi, useSave } from "../lib/api";
+import { useSpace } from "../lib/space";
 import { dateTime, full } from "../lib/format";
 import type { Account, Activity, Solution } from "../lib/types";
 import { IconSpark } from "./icons";
@@ -11,7 +12,7 @@ export type FieldSpec = {
   label: string;
   /**
    * rate : taux en % avec décimales (commission IAP 2,5 %) ; suggest : texte libre avec suggestions
-   * (commerciaux, apporteurs extérieurs) ; iapdeal : affaire IAP liée.
+   * (commerciaux, apporteurs extérieurs) ; iapdeal : affaire liée, dans l'espace en cours (IAP, IAC, IAF).
    */
   type?: "text" | "textarea" | "amount" | "int" | "date" | "select" | "percent" | "prio" | "account" | "solution" | "rate" | "suggest" | "iapdeal";
   options?: readonly string[] | { value: string; label: string }[];
@@ -54,6 +55,17 @@ const FIELD_LABELS: Record<string, string> = {
   apport_paid_at: "part apport versée",
   closing_paid_at: "part closing versée",
   deal_id: "affaire",
+  sector: "domaine",
+  fee: "honoraire",
+  fee_received: "honoraire encaissé",
+  fee_received_at: "date d’encaissement de l’honoraire",
+  commission_received_at: "date d’encaissement de la commission",
+  entity: "entité",
+  potential: "potentiel",
+  next_action: "prochaine action",
+  iag_referent: "référent IAG",
+  partner_referent: "référent partenaire",
+  last_interaction: "dernière interaction",
 };
 
 /** Panneau d'édition générique : création (`id` nul) ou modification, avec l'historique de l'élément. */
@@ -374,9 +386,10 @@ function RateInput({ id, value, onChange }: { id: string; value: number | null; 
   );
 }
 
-/** Choix d'une affaire IAP (plan d'actions IAP). */
+/** Choix d'une affaire de l'espace en cours (plans d'actions IAP, IAC, IAF). */
 function IapDealSelect({ id, value, onChange }: { id: string; value: number | null; onChange: (v: unknown) => void }) {
-  const { data } = useApi<Page<{ id: number; number: number; title: string }>>("/iap/deals?limit=500");
+  const space = useSpace();
+  const { data } = useApi<Page<{ id: number; number: number; title: string }>>(`${space.api || "/iap"}/deals?limit=500`);
   return (
     <select id={id} className="select" value={value ?? ""} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}>
       <option value="">—</option>

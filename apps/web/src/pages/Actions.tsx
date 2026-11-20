@@ -1,15 +1,16 @@
 import { type FormEvent, useState } from "react";
 import { IconCheck, IconPlus } from "../components/icons";
 import { Pagination, usePaged } from "../components/Pagination";
+import { FinActionSheet } from "../components/fin-sheets";
 import { IapActionSheet } from "../components/iap-sheets";
 import { ActionSheet, LEADS } from "../components/sheets";
 import { Due, Empty, FilterSelect, Loading, Prio, Search, useToast } from "../components/ui";
 import { type Page, qs, useApi, useSave } from "../lib/api";
 import { useDeepLink } from "../lib/deeplink";
-import { useSpace } from "../lib/space";
+import { isFinSpace, useSpace } from "../lib/space";
 import { type Action, IAP_PEOPLE, type IapAction } from "../lib/types";
 
-/** Une action d'IAT ou d'IAP : mêmes champs de suivi, rattachement différent (compte ou affaire). */
+/** Une action d'IAT, d'IAP, d'IAC ou d'IAF : mêmes champs de suivi, rattachement différent (compte ou affaire). */
 type AnyAction = Action | IapAction;
 const relatedOf = (a: AnyAction) => ("deal_title" in a ? (a.deal_title ? `Affaire ${a.deal_number} · ${a.deal_title}` : null) : a.related_to);
 
@@ -23,7 +24,7 @@ const GROUPS: { key: string; label: string; test: (a: AnyAction) => boolean }[] 
 export function ActionsPage() {
   const space = useSpace();
   const iap = space.code === "iap";
-  const owners = iap ? IAP_PEOPLE : LEADS;
+  const fin = isFinSpace(space.code);
   const [q, setQ] = useState("");
   const [owner, setOwner] = useState("");
   const [priority, setPriority] = useState("");
@@ -34,6 +35,8 @@ export function ActionsPage() {
   const clearLink = useDeepLink<AnyAction>("action", (n) => `${space.api}/actions?number=${n}`, setOpen);
   const { data, isLoading } = useApi<Page<AnyAction>>(`${space.api}/actions${qs({ q, owner, priority, limit: 500 })}`, { keepPrevious: true });
   const actions = data?.results ?? [];
+  // IAC / IAF n'ont pas de liste fixe de responsables : ceux déjà saisis dans le plan d'actions.
+  const owners = iap ? IAP_PEOPLE : fin ? [...new Set(actions.map((a) => a.owner).filter((o): o is string => !!o))].sort() : LEADS;
   const done = actions.filter((a) => a.done);
   const filterKey = `${q}|${owner}|${priority}`;
   // La liste est triée par l'API (retards et échéances proches d'abord) ; les groupes se forment dans chaque page.
@@ -126,7 +129,15 @@ export function ActionsPage() {
         </>
       )}
       {open &&
-        (iap ? (
+        (fin ? (
+          <FinActionSheet
+            action={open as IapAction}
+            onClose={() => {
+              setOpen(null);
+              clearLink();
+            }}
+          />
+        ) : iap ? (
           <IapActionSheet
             action={open as IapAction}
             onClose={() => {
@@ -211,7 +222,7 @@ function QuickAdd({ onCreated }: { onCreated: (id: number) => void }) {
         body: {
           title: title.trim(),
           status: "À faire",
-          owner: space.code === "iap" ? undefined : "Commercial IAT",
+          owner: space.code === "iat" ? "Commercial IAT" : undefined,
           due_date: due || undefined,
           priority: priority || undefined,
         },

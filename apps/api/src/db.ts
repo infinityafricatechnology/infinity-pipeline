@@ -1,6 +1,8 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
+import { finSchema, PARTNER_SCHEMA } from "./domain-fin.ts";
+import { FIN_SPACES } from "./spaces.ts";
 
 export type Row = Record<string, unknown>;
 export type Params = Record<string, SQLInputValue>;
@@ -13,6 +15,9 @@ export function openDatabase(path = process.env.DATABASE_PATH ?? "data/iat.db"):
   const db = new DatabaseSync(file);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   db.exec(readFileSync(resolve(import.meta.dirname, "schema.sql"), "utf8"));
+  // IAC et IAF : mêmes tables, une série par filiale ; partenaires du Groupe.
+  for (const space of FIN_SPACES) db.exec(finSchema(space));
+  db.exec(PARTNER_SCHEMA);
   migrate(db);
   return db;
 }

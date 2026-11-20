@@ -204,3 +204,18 @@ export const IconSwitch = (p: P) => (
     <path d="M13.5 10.5 16 13l-2.5 2.5M16 13H5" />
   </svg>
 );
+/** Encaissements : pièce et flèche entrante. */
+export const IconCash = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="10" cy="11" r="5.5" />
+    <path d="M10 2.5v4.5M8 5l2 2 2-2" />
+    <path d="M8.5 12.2c.3.6.9.9 1.6.9.9 0 1.5-.4 1.5-1.1 0-1.5-3.1-.8-3.1-2.3 0-.6.6-1.1 1.5-1.1.6 0 1.1.3 1.4.8" />
+  </svg>
+);
+/** Partenaires : deux anneaux entrelacés. */
+export const IconPartners = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="7.5" cy="10" r="4.5" />
+    <circle cx="12.5" cy="10" r="4.5" />
+  </svg>
+);

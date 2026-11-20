@@ -268,7 +268,7 @@ export function registerInsights(app: OpenAPIHono<AppEnv>) {
           entity: z.string().optional(),
           entity_id: z.coerce.number().int().optional(),
           via: z.enum(["web", "api", "claude", "import"]).optional(),
-          space: z.enum(SPACE_CODES).optional().openapi({ description: "Filiale : iat ou iap (par défaut, tous les espaces autorisés)" }),
+          space: z.enum(SPACE_CODES).optional().openapi({ description: "Espace : iat, iap, iac, iaf ou iag (par défaut, tous les espaces autorisés)" }),
           limit: z.coerce.number().int().min(1).max(200).default(50),
           offset: z.coerce.number().int().min(0).default(0),
         }),

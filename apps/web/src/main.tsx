@@ -16,6 +16,12 @@ import { ActionsPage } from "./pages/Actions";
 import { ActivityPage } from "./pages/Activity";
 import { Contacts } from "./pages/Contacts";
 import { Deals } from "./pages/Deals";
+import { FinContacts } from "./pages/fin/Contacts";
+import { FinDeals } from "./pages/fin/Deals";
+import { FinOverview } from "./pages/fin/Overview";
+import { FinRecoveryPage } from "./pages/fin/Recovery";
+import { GroupOverview } from "./pages/group/Overview";
+import { PartnersPage } from "./pages/group/Partners";
 import { IapCommissionsPage } from "./pages/iap/Commissions";
 import { IapContacts } from "./pages/iap/Contacts";
 import { IapDeals } from "./pages/iap/Deals";
@@ -118,6 +124,32 @@ const router = createBrowserRouter([
           { path: "journal", element: <ActivityPage /> },
           { path: "reglages", element: <Settings /> },
           { path: "*", element: <Navigate to="/iap" replace /> },
+        ],
+      },
+      ...(["iac", "iaf"] as const).map((space) => ({
+        path: space,
+        // La clé force un nouvel arbre en passant d'IAC à IAF : filtres et fiches ouvertes ne se mélangent pas.
+        element: <SpaceLayout key={space} space={space} />,
+        children: [
+          { index: true, element: <FinOverview /> },
+          { path: "affaires", element: <FinDeals /> },
+          { path: "encaissements", element: <FinRecoveryPage /> },
+          { path: "actions", element: <ActionsPage /> },
+          { path: "contacts", element: <FinContacts /> },
+          { path: "journal", element: <ActivityPage /> },
+          { path: "reglages", element: <Settings /> },
+          { path: "*", element: <Navigate to={`/${space}`} replace /> },
+        ],
+      })),
+      {
+        path: "groupe",
+        element: <SpaceLayout space="iag" />,
+        children: [
+          { index: true, element: <GroupOverview /> },
+          { path: "partenaires", element: <PartnersPage /> },
+          { path: "journal", element: <ActivityPage /> },
+          { path: "reglages", element: <Settings /> },
+          { path: "*", element: <Navigate to="/groupe" replace /> },
         ],
       },
       { path: "*", element: <LegacyRedirect /> },

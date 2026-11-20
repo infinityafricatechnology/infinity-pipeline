@@ -79,7 +79,7 @@ describe("API IAP", () => {
     assert.equal((await call(iapOnly, "GET", "/iap/summary")).status, 200);
     const me = await (await call(iapOnly, "GET", "/me")).json();
     assert.deepEqual(me.user.spaces, ["iap"]);
-    assert.deepEqual((await (await call(admin, "GET", "/me")).json()).user.spaces, ["iat", "iap"]);
+    assert.deepEqual((await (await call(admin, "GET", "/me")).json()).user.spaces, ["iat", "iap", "iac", "iaf", "iag"]);
   });
 
   it("crée une affaire, calcule commission et parts, journalise dans l'espace IAP", async () => {

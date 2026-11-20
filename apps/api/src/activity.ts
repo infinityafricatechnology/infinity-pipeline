@@ -16,10 +16,21 @@ export type Entity =
   | "action"
   | "iap_deal"
   | "iap_action"
-  | "iap_contact";
+  | "iap_contact"
+  | "iac_deal"
+  | "iac_action"
+  | "iac_contact"
+  | "iaf_deal"
+  | "iaf_action"
+  | "iaf_contact"
+  | "partner";
 
-/** Filiale d'une entité : les entités IAP sont préfixées « iap_ ». */
-export const spaceOf = (entity: string) => (entity.startsWith("iap_") ? "iap" : "iat");
+/** Filiale d'une entité : préfixe « iap_ », « iac_ », « iaf_ » ; les partenaires relèvent du Groupe ; sinon IAT. */
+export function spaceOf(entity: string) {
+  if (entity === "partner") return "iag";
+  const prefix = entity.split("_")[0];
+  return prefix === "iap" || prefix === "iac" || prefix === "iaf" ? prefix : "iat";
+}
 
 /** Différences champ par champ entre deux versions d'une ligne (horodatages exclus). */
 export function diff(before: Row, after: Row): Record<string, [unknown, unknown]> {

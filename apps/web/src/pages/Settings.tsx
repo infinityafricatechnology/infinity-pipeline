@@ -251,14 +251,15 @@ function Password() {
   );
 }
 
-type SpaceCode = "iat" | "iap";
-const SPACE_NAMES: Record<SpaceCode, string> = { iat: "IAT", iap: "IAP" };
+type SpaceCode = "iat" | "iap" | "iac" | "iaf" | "iag";
+const SPACE_CODES: SpaceCode[] = ["iat", "iap", "iac", "iaf", "iag"];
+const SPACE_NAMES: Record<SpaceCode, string> = { iat: "IAT", iap: "IAP", iac: "IAC", iaf: "IAF", iag: "Groupe" };
 
 /** Espaces accessibles d'un membre ; un administrateur a toujours accès à tous. */
 function SpaceToggles({ user }: { user: { id: number; role: string; spaces: SpaceCode[] } }) {
   const save = useSave();
   const toast = useToast();
-  if (user.role === "admin") return <span className="t-caption">IAT et IAP (administrateur)</span>;
+  if (user.role === "admin") return <span className="t-caption">Tous les espaces (administrateur)</span>;
   const toggle = (code: SpaceCode) => {
     const next = user.spaces.includes(code) ? user.spaces.filter((s) => s !== code) : [...user.spaces, code];
     if (!next.length) {
@@ -272,7 +273,7 @@ function SpaceToggles({ user }: { user: { id: number; role: string; spaces: Spac
   };
   return (
     <span className="space-toggles" role="group" aria-label="Espaces accessibles">
-      {(["iat", "iap"] as const).map((code) => (
+      {SPACE_CODES.map((code) => (
         <label key={code} className={`space-toggle ${code}${user.spaces.includes(code) ? " on" : ""}`}>
           <input type="checkbox" checked={user.spaces.includes(code)} onChange={() => toggle(code)} disabled={save.isPending} />
           {SPACE_NAMES[code]}
@@ -358,7 +359,7 @@ function Users() {
             <div className="field">
               <span className="label">Espaces</span>
               <span className="space-toggles">
-                {(["iat", "iap"] as const).map((code) => (
+                {SPACE_CODES.map((code) => (
                   <label key={code} className={`space-toggle ${code}${form.spaces.includes(code) ? " on" : ""}`}>
                     <input
                       type="checkbox"

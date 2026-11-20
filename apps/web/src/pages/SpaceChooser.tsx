@@ -1,20 +1,34 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, Navigate } from "react-router";
-import { IatMark, IapWordmark, SpaceMark } from "../components/Logo";
+import { IatMark, IapWordmark, SpaceMark, SpaceWordmark } from "../components/Logo";
 import { APP_NAME } from "../components/Shell";
 import { api, useApi } from "../lib/api";
 import { compact, longDate } from "../lib/format";
 import { useMe } from "../lib/me";
 import { applySpaceTheme, lastSpace, SPACE_LIST, type SpaceCode } from "../lib/space";
-import type { IapSummary, Summary } from "../lib/types";
+import type { FinSummary, GroupSummary, IapSummary, Summary } from "../lib/types";
 
 /** Deux ou trois chiffres de l'espace, pour choisir en connaissance de cause. */
 function Figures({ space }: { space: SpaceCode }) {
   const { data: iat } = useApi<Summary>(space === "iat" ? "/summary" : null);
   const { data: iap } = useApi<IapSummary>(space === "iap" ? "/iap/summary" : null);
+  const { data: fin } = useApi<FinSummary>(space === "iac" || space === "iaf" ? `/${space}/summary` : null);
+  const { data: group } = useApi<GroupSummary>(space === "iag" ? "/groupe/summary" : null);
   const figures =
-    space === "iat"
+    space === "iag"
+      ? group && [
+          { value: compact(group.totals.open_amount), label: "FCFA en cours dans le groupe" },
+          { value: String(group.subsidiaries.length), label: "filiales" },
+          { value: String(group.partners.count), label: "partenaires" },
+        ]
+      : space === "iac" || space === "iaf"
+      ? fin && [
+          { value: compact(fin.pipeline.open_amount), label: "FCFA recherchés" },
+          { value: compact(fin.pipeline.revenue), label: "FCFA de revenus attendus" },
+          { value: compact(fin.cash.outstanding), label: "FCFA à recouvrer", alert: fin.cash.outstanding > 0 },
+        ]
+      : space === "iat"
       ? iat && [
           { value: compact(iat.pipeline.total_amount), label: "FCFA en jeu" },
           { value: String(iat.pipeline.deals_count), label: "affaires" },
@@ -38,7 +52,7 @@ function Figures({ space }: { space: SpaceCode }) {
 }
 
 /**
- * Écran d'accueil après connexion : choisir l'espace de travail (IAT ou IAP). Chaque carte porte les
+ * Écran d'accueil après connexion : choisir l'espace de travail (Groupe, IAT, IAP, IAC, IAF). Chaque carte porte les
  * couleurs de sa filiale ; le dernier espace utilisé est signalé et reçoit le focus clavier.
  */
 export function SpaceChooser() {
@@ -68,7 +82,7 @@ export function SpaceChooser() {
       <main className="chooser-main">
         <div className="t-caption">{longDate(me.today)}</div>
         <h1 className="t-title chooser-title">Bonjour {firstName}, quel espace ouvrir ?</h1>
-        <p className="lede">Vous pourrez passer de l’un à l’autre à tout moment depuis le logo, en haut à gauche.</p>
+        <p className="lede">Vous pourrez passer d’un espace à l’autre à tout moment depuis le logo, en haut à gauche.</p>
         <div className="space-cards">
           {spaces.map((s) => (
             <Link
@@ -79,7 +93,13 @@ export function SpaceChooser() {
               aria-label={`Ouvrir l’espace ${s.name}, ${s.fullName}`}
             >
               <div className="space-card-art" aria-hidden>
-                {s.code === "iap" ? <IapWordmark className="on-dark" /> : <IatMark className="space-card-mark" />}
+                {s.code === "iap" ? (
+                  <IapWordmark className="on-dark" />
+                ) : s.code === "iat" ? (
+                  <IatMark className="space-card-mark" />
+                ) : (
+                  <SpaceWordmark space={s.code} className="on-dark" />
+                )}
                 {last === s.code && <span className="space-card-last">Dernier espace utilisé</span>}
               </div>
               <div className="space-card-body">

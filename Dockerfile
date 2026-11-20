@@ -32,6 +32,7 @@ ENV NODE_ENV=production \
     DATABASE_PATH=/data/iat.db \
     SEED_PATH=/app/seed/seed.json \
     IAP_SEED_PATH=/app/seed/seed-iap.json \
+    FIN_SEED_PATH=/app/seed/seed-fin.json \
     WEB_DIST=/app/apps/web/dist
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -43,6 +44,7 @@ COPY --from=build /app/apps/web/dist apps/web/dist
 # Données de départ tirées du classeur (pnpm import-xlsx) : chargées au premier démarrage seulement.
 COPY data/seed.json seed/seed.json
 COPY data/seed-iap.json seed/seed-iap.json
+COPY data/seed-fin.json seed/seed-fin.json
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN mkdir -p /data && chown node:node /data && chmod +x /usr/local/bin/entrypoint.sh
 USER node

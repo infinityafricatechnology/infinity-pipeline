@@ -3,7 +3,7 @@
  *
  *   pnpm user add <email> "<Nom>" [--admin]     crée un compte, mot de passe généré
  *   pnpm user reset <email>                     génère un nouveau mot de passe
- *   pnpm user spaces <email> iat,iap            filiales accessibles (un admin a accès à tout)
+ *   pnpm user spaces <email> iat,iap,iac,iaf,iag  espaces accessibles (un admin a accès à tout)
  *   pnpm user list
  */
 import { randomBytes } from "node:crypto";
@@ -25,7 +25,7 @@ if (command === "add" && email && name) {
 } else if (command === "spaces" && email && name) {
   const spaces = parseSpaces(name);
   if (!spaces.length) {
-    console.log("Espaces reconnus : iat, iap (séparés par des virgules).");
+    console.log("Espaces reconnus : iat, iap, iac, iaf, iag (séparés par des virgules).");
     process.exitCode = 1;
   } else {
     const result = db.prepare("UPDATE users SET spaces = ? WHERE email = ?").run(spaces.join(","), email);

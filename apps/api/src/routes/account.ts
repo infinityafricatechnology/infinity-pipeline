@@ -17,7 +17,7 @@ const Me = z
       email: z.string(),
       name: z.string(),
       role: z.string(),
-      spaces: z.array(z.enum(SPACE_CODES)).openapi({ description: "Filiales accessibles : iat (Infinity Africa Technologies), iap (Infinity Africa Properties)" }),
+      spaces: z.array(z.enum(SPACE_CODES)).openapi({ description: "Espaces accessibles : iat (Infinity Africa Technologies), iap (Infinity Africa Properties), iac (Infinity Africa Capital), iaf (Infinity Africa Finance), iag (Groupe : vue consolidée et partenaires)" }),
     }),
     via: z.enum(["web", "api", "claude"]),
     today: z.string(),
@@ -57,7 +57,7 @@ export function registerAccountRoutes(app: OpenAPIHono<AppEnv>) {
       operationId: "whoami",
       summary: "Personne connectée, filiales accessibles et date du jour",
       description:
-        "À appeler avant de travailler avec des dates relatives (« cette semaine », « en retard »). `user.spaces` liste les filiales accessibles : les routes `/iap/…` concernent IAP, les autres IAT.",
+        "À appeler avant de travailler avec des dates relatives (« cette semaine », « en retard »). `user.spaces` liste les filiales accessibles : les routes `/iap/…` concernent IAP, `/iac/…` IAC, `/iaf/…` IAF, `/groupe/…` le Groupe (vue consolidée, partenaires), les autres IAT.",
       responses: { 200: json(Me, "Personne connectée") },
     }),
     (c) => c.json({ user: c.var.actor.user, via: c.var.actor.via, today: today(), app_url: process.env.PUBLIC_URL ?? null }, 200),

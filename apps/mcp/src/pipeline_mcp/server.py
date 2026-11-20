@@ -4,13 +4,15 @@ from fastmcp import FastMCP
 
 from .auth import PipelineTokenVerifier
 from .deps import Deps
+from .tools.fin import register_fin_tools
+from .tools.group import register_group_tools
 from .tools.iap import register_iap_tools
 from .tools.read import register_read_tools
 from .tools.write import register_write_tools
 
 INSTRUCTIONS = """\
-Infinity Pipeline est le pipeline commercial de deux filiales d'Infinity Africa (Côte d'Ivoire), chacune dans
-son espace, avec ses propres données. Répondez en français.
+Infinity Pipeline est le pipeline commercial des filiales d'Infinity Africa (Côte d'Ivoire, groupe IAG), chacune
+dans son espace, avec ses propres données. Répondez en français.
 
 - IAT (Infinity Africa Technologies, services informatiques) : outils sans préfixe (pipeline_overview,
   search_deals, get_account, create_actions…).
@@ -23,8 +25,20 @@ son espace, avec ses propres données. Répondez en français.
   Chaque affaire porte aussi une priorité (1 = la plus haute, le projet Silver), un statut suivi par l'équipe
   (Signé, Commercialisation active…), une facilité de commercialisation (Élevée / Moyenne / Faible) et l'état de
   la due diligence et de l'étude du marché ; les listes sont triées par priorité.
+- IAC (Infinity Africa Capital, mobilisation de capitaux) et IAF (Infinity Africa Finance, levées de fonds dette /
+  equity, leasing, restructuration) : même modèle, outils préfixés fin_ avec space="iac" ou space="iaf"
+  (fin_overview, fin_search_deals, fin_recovery, fin_update_deals…). Une affaire est une entreprise qui cherche des
+  capitaux ou un financement : étapes F0 prospection, F1 étude de faisabilité / documents, F2 mandat signé,
+  F3 structuration / dossier transmis aux bailleurs, F4 financement obtenu à recouvrer, F5 encaissé, LOST perdu.
+  Revenu = honoraire (forfait d'étude et de structuration, dû dès qu'il est fixé) + commission de succès
+  (montant demandé × taux, due une fois le financement obtenu). Les encaissements (fee_received,
+  commission_received) sont des cumuls ; le reste à encaisser est calculé.
+- Groupe IAG : group_overview (totaux par filiale accessible et pour le groupe) et partners_search /
+  partners_create / partners_update (cartographie des partenaires stratégiques : entité, potentiel, référents,
+  prochaine action et échéance).
 - Si la filiale n'est pas claire (« l'affaire 12 », « le pipeline »), demandez laquelle ; whoami indique les espaces
-  accessibles (user.spaces). Ne mélangez jamais les chiffres des deux filiales.
+  accessibles (user.spaces : iat, iap, iac, iaf, iag). Ne mélangez jamais les chiffres de deux filiales, sauf dans
+  group_overview qui les additionne explicitement.
 
 Règles communes, avec les spécificités d'IAT :
 - IAT : une affaire avance d'étape en étape : M0 à qualifier, M1 besoin identifié, M2 cadrage, M3 offre en préparation,
@@ -35,8 +49,9 @@ Règles communes, avec les spécificités d'IAT :
   de chaque élément cité.
 - IAT, renouvellements : échéance = dernière facturation + 12 mois, relances à J-90 et J-30.
 - Appelez whoami pour la date du jour avant de raisonner sur « cette semaine » ou « en retard ».
-- Pour un point général, commencez par pipeline_overview ou agenda (IAT), iap_overview (IAP) ;
-  pour un client IAT, get_account ; pour une affaire IAP, iap_get_deal.
+- Pour un point général, commencez par pipeline_overview ou agenda (IAT), iap_overview (IAP), fin_overview (IAC,
+  IAF) ou group_overview (groupe) ; pour un client IAT, get_account ; pour une affaire IAP, iap_get_deal ;
+  pour une affaire IAC / IAF, fin_get_deal.
 - Groupez les écritures (les outils create_* et update_* prennent des listes, tout ou rien).
 - Avant un lot important de modifications, montrez ce que vous allez faire et attendez l'accord.
   Avant de supprimer une affaire ou une action, demandez confirmation.
@@ -51,4 +66,6 @@ def create_server(deps: Deps, *, authenticate: bool = True) -> FastMCP:
     register_read_tools(mcp, deps)
     register_write_tools(mcp, deps)
     register_iap_tools(mcp, deps)
+    register_fin_tools(mcp, deps)
+    register_group_tools(mcp, deps)
     return mcp

@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { IapMark, IapWordmark, IatMark } from "../components/Logo";
+import { ColorMark, IapMark, IapWordmark, IatMark } from "../components/Logo";
 import { APP_NAME } from "../components/Shell";
 import { api, ApiError } from "../lib/api";
 import { applySpaceTheme } from "../lib/space";
@@ -41,9 +41,11 @@ export function Login() {
         <span className="login-marks">
           <IatMark className="mark" />
           <IapMark className="mark" />
+          <ColorMark space="iac" className="mark" />
+          <ColorMark space="iaf" className="mark" />
         </span>
-        <p>Chaque affaire, chaque échéance, chaque client d’IAT et d’IAP, au même endroit.</p>
-        <small>{APP_NAME} · Infinity Africa Technologies · Infinity Africa Properties</small>
+        <p>Chaque affaire, chaque échéance, chaque client des filiales d’Infinity Africa, au même endroit.</p>
+        <small>{APP_NAME} · Technologies · Properties · Capital · Finance</small>
       </div>
       <div className="login-form">
         <form onSubmit={submit}>

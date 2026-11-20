@@ -8,13 +8,18 @@ import { secureHeaders } from "hono/secure-headers";
 import { type AppEnv, authenticate, requireSpaces } from "./auth.ts";
 import { ApiError } from "./resource.ts";
 import { APP_NAME, authRoutes, registerAccountRoutes } from "./routes/account.ts";
+import { registerFin } from "./routes/fin.ts";
+import { registerGroup } from "./routes/group.ts";
 import { registerIap } from "./routes/iap.ts";
 import { registerInsights } from "./routes/insights.ts";
 import { registerResources } from "./routes/resources.ts";
 
 const API_DESCRIPTION = `API publique d'${APP_NAME}, le pipeline commercial des filiales d'Infinity Africa :
 - IAT (Infinity Africa Technologies) : routes sans préfixe (\`/deals\`, \`/accounts\`, \`/summary\`…) ;
-- IAP (Infinity Africa Properties, immobilier) : routes \`/iap/…\` (affaires, commissions, actions, contacts).
+- IAP (Infinity Africa Properties, immobilier) : routes \`/iap/…\` (affaires, commissions, actions, contacts) ;
+- IAC (Infinity Africa Capital, mobilisation de capitaux) et IAF (Infinity Africa Finance, financement) : routes
+  \`/iac/…\` et \`/iaf/…\` (affaires, encaissements, actions, contacts), même modèle pour les deux ;
+- Groupe IAG : routes \`/groupe/…\` (vue consolidée des filiales, partenaires stratégiques).
 Chaque compte n'accède qu'à ses filiales (\`GET /me\` → \`user.spaces\`), sinon 403.
 
 Authentification : \`Authorization: Bearer <jeton>\`. Les jetons se créent dans l'application, Réglages > Connecter Claude ;
@@ -65,6 +70,8 @@ export function createApp(db: DatabaseSync, options: { webDist?: string } = {}) 
   registerInsights(api);
   registerResources(api);
   registerIap(api);
+  registerFin(api);
+  registerGroup(api);
 
   api.onError((error, c) => {
     if (error instanceof ApiError) return c.json({ error: error.message }, error.status);

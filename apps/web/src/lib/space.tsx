@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useContext, useEffect } from "react";
 
 /** Filiales gérées par l'application ; chacune a ses données, sa navigation et ses couleurs. */
-export type SpaceCode = "iat" | "iap";
+export type SpaceCode = "iat" | "iap" | "iac" | "iaf" | "iag";
 
 export type SpaceInfo = {
   code: SpaceCode;
@@ -11,7 +11,7 @@ export type SpaceInfo = {
   tagline: string;
   /** Préfixe des pages de l'espace : /iat, /iap. */
   base: string;
-  /** Préfixe de l'API : "" pour IAT (routes historiques), "/iap" pour IAP. */
+  /** Préfixe de l'API : "" pour IAT (routes historiques), "/iap", "/iac", "/iaf", "/groupe" pour les autres. */
   api: string;
   favicon: string;
 };
@@ -35,9 +35,39 @@ export const SPACES: Record<SpaceCode, SpaceInfo> = {
     api: "/iap",
     favicon: "/favicon-iap.svg",
   },
+  iac: {
+    code: "iac",
+    name: "IAC",
+    fullName: "Infinity Africa Capital",
+    tagline: "Mobilisation de capitaux, honoraires et commissions de succès",
+    base: "/iac",
+    api: "/iac",
+    favicon: "/favicon-iac.svg",
+  },
+  iaf: {
+    code: "iaf",
+    name: "IAF",
+    fullName: "Infinity Africa Finance",
+    tagline: "Levées de fonds, financements et recouvrement",
+    base: "/iaf",
+    api: "/iaf",
+    favicon: "/favicon-iaf.svg",
+  },
+  iag: {
+    code: "iag",
+    name: "Groupe",
+    fullName: "Groupe IAG",
+    tagline: "Vue consolidée des filiales et partenaires stratégiques",
+    base: "/groupe",
+    api: "/groupe",
+    favicon: "/favicon-iag.svg",
+  },
 };
 
-export const SPACE_LIST = [SPACES.iat, SPACES.iap];
+export const SPACE_LIST = [SPACES.iag, SPACES.iat, SPACES.iap, SPACES.iac, SPACES.iaf];
+
+/** Filiales IAC et IAF : même modèle d'affaires (pages partagées dans pages/fin). */
+export const isFinSpace = (code: SpaceCode): code is "iac" | "iaf" => code === "iac" || code === "iaf";
 
 const SpaceContext = createContext<SpaceInfo>(SPACES.iat);
 
@@ -55,7 +85,7 @@ const LAST_KEY = "infinity-pipeline.space";
 export function lastSpace(): SpaceCode | null {
   try {
     const value = window.localStorage.getItem(LAST_KEY);
-    return value === "iat" || value === "iap" ? value : null;
+    return value && value in SPACES ? (value as SpaceCode) : null;
   } catch {
     return null;
   }
@@ -88,7 +118,7 @@ export function applySpaceTheme(space: SpaceCode | null) {
   document.title = info ? `${info.name} · Infinity Pipeline` : "Infinity Pipeline";
   for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]')) {
     if (!link.dataset.original) link.dataset.original = link.getAttribute("href") ?? "";
-    if (info?.code === "iap") {
+    if (info && info.code !== "iat") {
       link.href = info.favicon;
       link.type = "image/svg+xml";
     } else {

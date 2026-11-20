@@ -49,6 +49,24 @@ Espace IAP (Infinity Africa Properties, immobilier), préfixe `iap_`, réservé 
 
 Non exposés volontairement : suppression de comptes, de contacts et de factures, gestion des utilisateurs et des jetons.
 
+Espaces IAC (Infinity Africa Capital) et IAF (Infinity Africa Finance), préfixe `fin_`, paramètre `space` (`iac` ou `iaf`) :
+
+| Outil | Rôle |
+|---|---|
+| `fin_overview` | Montants recherchés, revenus attendus (honoraires + commissions), encaissé, reste à recouvrer, semaine |
+| `fin_search_deals`, `fin_get_deal` | Affaires par étape (F0 à F5), domaine, nature, reste à encaisser ; détail des encaissements |
+| `fin_recovery` | Honoraires et commissions restant à recouvrer, par affaire |
+| `fin_search_actions`, `fin_search_contacts` | Plan d'actions et contacts |
+| `fin_create_deals`, `fin_update_deals` | Affaires, y compris encaissements (cumuls) |
+| `fin_create_actions`, `fin_update_actions`, `fin_create_contacts`, `fin_update_contacts` | Actions et contacts |
+
+Espace Groupe (IAG) :
+
+| Outil | Rôle |
+|---|---|
+| `group_overview` | Totaux par filiale accessible et pour le groupe, indicateurs des partenaires |
+| `partners_search`, `partners_create`, `partners_update` | Cartographie des partenaires stratégiques |
+
 ## Configuration
 
 | Variable | Défaut | |

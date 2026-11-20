@@ -4,6 +4,8 @@ Le pipeline commercial de deux filiales d'Infinity Africa, chacune dans son espa
 
 - **IAT** (Infinity Africa Technologies, `/iat`), tiré du classeur `docs/PIPELINE_IAT_V3.xlsx` : affaires de M0 à M6, renouvellements et relances J-90 / J-30, facturation et encaissements par client, fiches comptes, solutions et prospects, appels d'offres, plan d'actions et base de 420 contacts ;
 - **IAP** (Infinity Africa Properties, `/iap`), tiré de `docs/iap/PIPELINE IAP.xlsx` : affaires immobilières de P0 (mandat à signer) à P5 (conclu), commissions attendues et pondérées, répartition apporteur / closeur selon la fiche de commissionnement (`docs/iap/FICHE DE COMMISSIONNEMENT.pdf` : 5 %, 10 %, 15 % sur la commission perçue), plan d'actions et contacts.
+- **IAC** (Infinity Africa Capital, `/iac`) et **IAF** (Infinity Africa Finance, `/iaf`), tirés de `docs/groupe/PIPELINE_GROUPE_IAC_IAF.xlsx` : même modèle pour les deux, affaires de F0 (prospection) à F5 (encaissé), honoraire + commission de succès (montant × taux), encaissements et reste à recouvrer, plan d'actions et contacts.
+- **Groupe** (`/groupe`, espace `iag`) : vue consolidée des filiales accessibles et cartographie des partenaires stratégiques (onglet PARTENAIRES du même classeur).
 
 Après connexion, un écran propose les espaces accessibles ; on passe de l'un à l'autre par le logo (barre latérale), la recherche ⌘K ou ⌘⇧E. Un administrateur voit les deux espaces ; pour un membre, les espaces se cochent dans Réglages > Utilisateurs (ou `pnpm user spaces <email> iat,iap`). Les anciennes adresses sans préfixe (`/affaires?affaire=8`) mènent à IAT.
 
@@ -39,10 +41,11 @@ Réimporter le classeur après une mise à jour (nécessite [uv](https://docs.as
 ```bash
 pnpm import-xlsx               # docs/PIPELINE_IAT_V3.xlsx + factures des renouvellements → data/seed.json
 pnpm import-iap                # docs/iap/PIPELINE IAP.xlsx → data/seed-iap.json
+pnpm import-fin                # docs/groupe/PIPELINE_GROUPE_IAC_IAF.xlsx → data/seed-fin.json (IAC, IAF, partenaires)
 pnpm seed --force              # recharge les données métier (utilisateurs et jetons conservés)
 ```
 
-Les données IAP sont chargées indépendamment : une base IAT déjà en service reçoit `data/seed-iap.json` au démarrage suivant si l'espace IAP est vide.
+Les données IAP sont chargées indépendamment : une base IAT déjà en service reçoit `data/seed-iap.json` au démarrage suivant si l'espace IAP est vide. Idem pour `data/seed-fin.json` (IAC, IAF, partenaires) ; augmenter `SEED_VERSION` dans `tools/import/import_fin_xlsx.py` pour qu'un classeur révisé remplace ces données en production (contacts conservés).
 
 `pnpm seed` ne touche qu'une base vide. Pour reporter les compléments de facturation (n° de facture, détail, coordonnées de facturation) dans une base déjà en service, sans écraser les saisies, avec un jeton de Réglages > Connecter Claude :
 
@@ -55,15 +58,15 @@ PIPELINE_API_URL=https://… PIPELINE_API_TOKEN=… uv run tools/import/sync_api
 
 | Dossier | Contenu |
 | --- | --- |
-| `apps/api` | API Hono + SQLite. `src/domain.ts` : vocabulaire et règles de calcul du classeur IAT ; `src/domain-iap.ts` : étapes et commissionnement IAP ; `src/routes/resources.ts` et `src/routes/iap.ts` : une déclaration par entité ; `src/spaces.ts` : filiales et droits d'accès ; `src/schema.sql` : schéma |
-| `apps/web` | Interface React (Vite), sans librairie de composants. `src/lib/space.tsx` : espaces et thème ; `src/components/nav.tsx` : navigation par espace ; `src/pages/iap/` : pages IAP ; `src/styles/app.css` : système visuel (accent bleu IAT, or IAP via `data-space`) |
+| `apps/api` | API Hono + SQLite. `src/domain.ts` : vocabulaire et règles de calcul du classeur IAT ; `src/domain-iap.ts` : étapes et commissionnement IAP ; `src/domain-fin.ts` et `src/routes/fin.ts` : IAC et IAF (tables `iac_*`, `iaf_*`) ; `src/routes/group.ts` : vue Groupe et partenaires ; `src/routes/resources.ts` et `src/routes/iap.ts` : une déclaration par entité ; `src/spaces.ts` : filiales et droits d'accès ; `src/schema.sql` : schéma |
+| `apps/web` | Interface React (Vite), sans librairie de composants. `src/lib/space.tsx` : espaces et thème ; `src/components/nav.tsx` : navigation par espace ; `src/pages/iap/` : pages IAP ; `src/pages/fin/` : pages IAC / IAF ; `src/pages/group/` : vue Groupe et partenaires ; `src/styles/app.css` : système visuel (accent bleu IAT, or IAP via `data-space`) |
 | `apps/mcp` | Serveur MCP pour Claude (Python, FastMCP) |
 | `tools/import` | Conversion des classeurs Excel en `data/seed.json` (IAT) et `data/seed-iap.json` (IAP) |
 | `docs/adr` | Décisions d'architecture |
 
 ## Brancher Claude (MCP)
 
-Le serveur MCP (`apps/mcp`, Python et FastMCP, sur le modèle d'Infinity Planning) démarre avec Docker Compose sur http://localhost:8311/mcp. Il expose une trentaine d'outils IAT (synthèse, agenda, affaires, comptes, renouvellements, actions, contacts, catalogue) et une douzaine d'outils IAP préfixés `iap_` (synthèse, affaires, commissions, actions, contacts) et n'appelle que l'API publique avec le jeton de chaque personne ; voir `apps/mcp/README.md` et `docs/adr/0001-api-publique-pour-claude.md`.
+Le serveur MCP (`apps/mcp`, Python et FastMCP, sur le modèle d'Infinity Planning) démarre avec Docker Compose sur http://localhost:8311/mcp. Il expose une trentaine d'outils IAT (synthèse, agenda, affaires, comptes, renouvellements, actions, contacts, catalogue) et une douzaine d'outils IAP préfixés `iap_` (synthèse, affaires, commissions, actions, contacts), des outils `fin_*` pour IAC et IAF (paramètre `space`) et des outils Groupe (`group_overview`, `partners_*`) et n'appelle que l'API publique avec le jeton de chaque personne ; voir `apps/mcp/README.md` et `docs/adr/0001-api-publique-pour-claude.md`.
 
 Pour chaque utilisateur :
 

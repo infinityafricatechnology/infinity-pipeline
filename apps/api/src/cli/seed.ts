@@ -8,6 +8,7 @@
  * Les données d'IAP (data/seed-iap.json, produit par `pnpm import-iap`) sont chargées de la même façon,
  * indépendamment : une base IAT déjà remplie reçoit les données IAP si l'espace IAP est vide, ou si le
  * fichier porte une version plus récente que celle déjà chargée (voir syncIapSeed).
+ * Idem pour IAC, IAF et les partenaires du Groupe (data/seed-fin.json, `pnpm import-fin`, voir syncFinSeed).
  */
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -15,6 +16,7 @@ import { resolve } from "node:path";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { hashPassword, verifyPassword } from "../auth.ts";
 import { one, openDatabase, projectRoot, transaction } from "../db.ts";
+import { FIN_SPACES } from "../spaces.ts";
 
 type Item = Record<string, unknown>;
 
@@ -100,6 +102,62 @@ function seedIap(db: DatabaseSync, force: boolean) {
   console.log(`Données IAP ${result === "replaced" ? "remplacées (classeur v" + (data.version ?? 1) + ")" : "chargées"} :`, counts);
 }
 
+type FinSpaceSeed = { deals: Item[]; actions?: Item[]; contacts?: Item[] };
+export type FinSeed = { version?: number; iac?: FinSpaceSeed; iaf?: FinSpaceSeed; partners?: Item[] };
+
+export function loadFinSeed(db: DatabaseSync, data: FinSeed) {
+  for (const space of FIN_SPACES) {
+    const part = data[space];
+    if (!part) continue;
+    const dealIds = new Map<number, number>();
+    for (const d of part.deals) dealIds.set(Number(d.number), insert(db, `${space}_deals`, d));
+    for (const { deal, ...a } of part.actions ?? []) insert(db, `${space}_actions`, { ...a, deal_id: deal ? (dealIds.get(Number(deal)) ?? null) : null });
+    for (const c of part.contacts ?? []) insert(db, `${space}_contacts`, c);
+  }
+  for (const p of data.partners ?? []) insert(db, "partners", p);
+}
+
+/**
+ * Charge IAC, IAF et les partenaires du classeur du Groupe, sur le même principe que syncIapSeed : une base
+ * vide les reçoit toujours ; une base remplie seulement si le fichier porte une version plus récente. Affaires,
+ * actions, partenaires et journal de ces espaces sont alors remplacés, les contacts saisis conservés.
+ */
+export function syncFinSeed(db: DatabaseSync, data: FinSeed, force = false): "loaded" | "replaced" | "kept" {
+  const version = Number(data.version ?? 1);
+  const hasData = FIN_SPACES.some((s) => one(db, `SELECT id FROM ${s}_deals LIMIT 1`)) || Boolean(one(db, "SELECT id FROM partners LIMIT 1"));
+  const stored = one<{ value: string }>(db, "SELECT value FROM meta WHERE key = 'fin_seed_version'");
+  const loaded = stored ? Number(stored.value) : hasData ? 1 : 0;
+  if (hasData && !force && version <= loaded) return "kept";
+  transaction(db, () => {
+    if (hasData) {
+      for (const space of FIN_SPACES) {
+        db.exec(`DELETE FROM ${space}_actions`);
+        db.exec(`DELETE FROM ${space}_deals`);
+        if (force) db.exec(`DELETE FROM ${space}_contacts`);
+      }
+      db.exec("DELETE FROM partners");
+      db.exec("DELETE FROM activity WHERE space IN ('iac', 'iaf', 'iag')");
+    }
+    loadFinSeed(db, data);
+    db.prepare("INSERT INTO meta (key, value) VALUES ('fin_seed_version', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(String(version));
+  });
+  return hasData ? "replaced" : "loaded";
+}
+
+function seedFin(db: DatabaseSync, force: boolean) {
+  const file = resolve(projectRoot, process.env.FIN_SEED_PATH ?? "data/seed-fin.json");
+  if (!existsSync(file)) return;
+  const data = JSON.parse(readFileSync(file, "utf8")) as FinSeed;
+  const result = syncFinSeed(db, data, force);
+  if (result === "kept") {
+    console.log("Les espaces IAC, IAF et Groupe contiennent déjà des données à jour : rien n'est rechargé.");
+    return;
+  }
+  const tables = [...FIN_SPACES.flatMap((s) => [`${s}_deals`, `${s}_actions`]), "partners"];
+  const counts = Object.fromEntries(tables.map((t) => [t, one<{ n: number }>(db, `SELECT COUNT(*) AS n FROM ${t}`)!.n]));
+  console.log(`Données IAC / IAF / partenaires ${result === "replaced" ? "remplacées (classeur v" + (data.version ?? 1) + ")" : "chargées"} :`, counts);
+}
+
 /**
  * Crée l'administrateur au premier démarrage. Ensuite, tant qu'il n'a pas choisi lui-même son mot de passe
  * (Réglages), celui d'IAT_ADMIN_PASSWORD lui est réappliqué : changer la configuration suffit.
@@ -153,6 +211,7 @@ if (import.meta.main) {
     console.log("Données chargées :", counts);
   }
   seedIap(db, force);
+  seedFin(db, force);
   ensureAdmin(db);
   db.close();
 }

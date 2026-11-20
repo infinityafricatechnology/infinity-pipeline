@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Context, MiddlewareHandler } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { one } from "./db.ts";
-import { type Space, userSpaces } from "./spaces.ts";
+import { type Space, SPACES, spaceOfPath, userSpaces } from "./spaces.ts";
 
 export type User = { id: number; email: string; name: string; role: "admin" | "member"; spaces: Space[] };
 type UserRow = Omit<User, "spaces"> & { spaces: string | null };
@@ -153,16 +153,18 @@ export function requireSession(c: Context<AppEnv>): Response | null {
 const SHARED_PATHS = [/^\/me(\/|$)/, /^\/tokens(\/|$)/, /^\/users(\/|$)/, /^\/activity$/, /^\/spaces$/, /^\/openapi\.json$/];
 
 /**
- * Cloisonne les filiales : `/iap/…` exige l'espace IAP, les routes métier historiques l'espace IAT.
+ * Cloisonne les filiales : `/iap/…`, `/iac/…`, `/iaf/…` et `/groupe/…` exigent l'espace correspondant,
+ * les routes métier historiques l'espace IAT.
  * Le chemin est relatif à `/api/v1`.
  */
 export function requireSpaces(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const path = c.req.path.replace(/^.*\/api\/v1/, "") || "/";
     if (!SHARED_PATHS.some((re) => re.test(path))) {
-      const space: Space = path === "/iap" || path.startsWith("/iap/") ? "iap" : "iat";
+      const space = spaceOfPath(path);
       if (!c.var.actor.user.spaces.includes(space)) {
-        const name = space === "iap" ? "IAP (Infinity Africa Properties)" : "IAT (Infinity Africa Technologies)";
+        const info = SPACES.find((s) => s.code === space)!;
+        const name = `${info.name} (${info.full_name})`;
         return c.json({ error: `Accès à l'espace ${name} non autorisé pour ce compte. Demandez-le à un administrateur.` }, 403);
       }
     }

@@ -9,6 +9,7 @@
     "start": "pnpm --filter @iat/api start",
     "import-xlsx": "uv run tools/import/import_xlsx.py docs/PIPELINE_IAT_V3.xlsx data/seed.json \"docs/IAT_Pipeline_renouvellements (1).xlsx\"",
     "import-iap": "uv run tools/import/import_iap_xlsx.py docs/iap/PIPELINE_IAP_2.xlsx data/seed-iap.json",
+    "import-fin": "uv run tools/import/import_fin_xlsx.py docs/groupe/PIPELINE_GROUPE_IAC_IAF.xlsx data/seed-fin.json",
     "seed": "pnpm --filter @iat/api seed",
     "user": "pnpm --filter @iat/api user",
     "check": "pnpm -r check"

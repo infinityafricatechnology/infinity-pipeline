@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, Navigate } from "react-router";
-import { IatMark, IapWordmark, SpaceMark, SpaceWordmark } from "../components/Logo";
+import { IapWordmark, SpaceMark, SpaceWordmark } from "../components/Logo";
 import { APP_NAME } from "../components/Shell";
 import { api, useApi } from "../lib/api";
 import { compact, longDate } from "../lib/format";
@@ -96,7 +96,7 @@ export function SpaceChooser() {
                 {s.code === "iap" ? (
                   <IapWordmark className="on-dark" />
                 ) : s.code === "iat" ? (
-                  <IatMark className="space-card-mark" />
+                  <img src="/logo-iat.webp" alt="" className="space-card-logo" />
                 ) : (
                   <SpaceWordmark space={s.code} className="on-dark" />
                 )}

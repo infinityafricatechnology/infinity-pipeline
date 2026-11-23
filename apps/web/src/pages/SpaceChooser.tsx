@@ -96,7 +96,7 @@ export function SpaceChooser() {
                 {s.code === "iap" ? (
                   <IapWordmark className="on-dark" />
                 ) : s.code === "iat" ? (
-                  <img src="/logo-iat.webp" alt="" className="space-card-logo" />
+                  <img src="/logo-iat-dark.webp" alt="" className="space-card-logo" />
                 ) : (
                   <SpaceWordmark space={s.code} className="on-dark" />
                 )}

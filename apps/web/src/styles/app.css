@@ -2697,12 +2697,7 @@ button.brand:focus-visible {
   overflow: hidden;
 }
 .space-card.iat .space-card-art {
-  background: radial-gradient(120% 140% at 85% 10%, #ffffff 0%, #e4eef8 70%);
-  border-bottom: 1px solid var(--hairline);
-}
-.space-card.iat .space-card-last {
-  color: #0b2a47;
-  background: rgba(13, 104, 178, 0.12);
+  background: radial-gradient(120% 140% at 85% 10%, #134a7c 0%, #0b2a47 60%);
 }
 .space-card.iap .space-card-art {
   background: radial-gradient(120% 140% at 85% 10%, #3a2f12 0%, #15120b 62%);
